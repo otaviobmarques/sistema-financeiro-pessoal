@@ -4,6 +4,8 @@ import { PLANS, usage } from "@/lib/plans";
 import { brl, dateBR } from "@/lib/money";
 import { aiEnabled, aiProvider } from "@/lib/ai";
 import { logout } from "@/app/actions";
+import { readPrefs } from "@/lib/notify-prefs";
+import { AlertPrefs } from "./avisos";
 import { Appearance, PlanBox, CategoryForm, RuleDelete, DeleteAccount, ServerPrefs } from "./client";
 
 export default async function Ajustes() {
@@ -18,6 +20,8 @@ export default async function Ajustes() {
       <h1 className="text-xl font-bold">Ajustes</h1>
 
       <section className="card space-y-3"><h2 className="font-semibold">Aparência e acessibilidade</h2><Appearance /><ServerPrefs simple={user.simpleMode} hide={user.hideValues} reminder={user.dailyReminder} /></section>
+
+      <section id="avisos" className="card space-y-3"><h2 className="font-semibold">Avisos</h2><AlertPrefs prefs={readPrefs(user.notifyPrefs)} /></section>
 
       <section id="plano" className="card space-y-3">
         <h2 className="font-semibold">Plano e pagamento</h2>

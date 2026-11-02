@@ -99,6 +99,7 @@ model User {
   bills        Bill[]
   notifications Notification[]
   notifyPrefs  Json?      // canais, horario de silencio, tipos (RF-093)
+  pushSubs     PushSubscription[]
 }
 
 // Agenda: compromissos, lembretes e contas a pagar (faturas e contas agendadas entram sozinhas)
@@ -365,4 +366,15 @@ model Notification {
 
   @@unique([userId, dedupKey])
   @@index([userId, createdAt])
+}
+
+// Assinaturas de notificacao push do navegador/PWA
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
 }

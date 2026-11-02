@@ -6,6 +6,8 @@ import { requireUser } from "@/lib/auth";
 import { parseMoney } from "@/lib/money";
 import { budgetStatus } from "@/lib/budgets";
 import type { FormState } from "./actions";
+import { ALERT_KINDS, readPrefs, type AlertKind } from "@/lib/notify-prefs";
+
 import { parseBoleto } from "@/lib/boleto";
 
 import { classify } from "@/lib/classify";
@@ -221,4 +223,22 @@ export async function scheduleMonthly(merchant: string, amountCents: number, day
   const c = await classify(user.id, { text: merchant, merchant, kind: "EXPENSE" });
   await createTransaction(user.id, { type: "EXPENSE", amountCents: amountCents, description: merchant, merchant, accountId: account.id, categoryId: c.categoryId, date, status: "PENDING", recurrence: "monthly", recurrenceMonths: 12 });
   revalidatePath("/contas-a-pagar"); revalidatePath("/recorrentes"); revalidatePath("/agenda");
+}
+
+// ---------- Avisos (RF-090..093) ----------
+
+export async function markNotificationsRead(ids?: string[]) {
+  const user = await requireUser();
+  await db.notification.updateMany({ where: { userId: user.id, readAt: null, ...(ids ? { id: { in: ids } } : {}) }, data: { readAt: new Date() } });
+  revalidatePath("/avisos"); revalidatePath("/", "layout");
+}
+
+export async function saveNotifyPrefs(_: FormState, fd: FormData): Promise<FormState> {
+  const user = await requireUser();
+  const cur = readPrefs(user.notifyPrefs);
+  const kinds = Object.fromEntries((Object.keys(ALERT_KINDS) as AlertKind[]).map((k) => [k, fd.get(`k_${k}`) === "on"])) as Record<AlertKind, boolean>;
+  const t = (v: FormDataEntryValue | null, d: string) => (/^\d{2}:\d{2}$/.test(String(v)) ? String(v) : d);
+  await db.user.update({ where: { id: user.id }, data: { notifyPrefs: { kinds, push: fd.get("push") === "on", quietStart: t(fd.get("quietStart"), cur.quietStart), quietEnd: t(fd.get("quietEnd"), cur.quietEnd) } } });
+  revalidatePath("/ajustes");
+  return { ok: "Preferências de avisos salvas" };
 }
