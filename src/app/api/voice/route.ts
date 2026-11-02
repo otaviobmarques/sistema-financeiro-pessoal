@@ -9,6 +9,7 @@ import { brl } from "@/lib/money";
 import { aiEnabled, aiJson } from "@/lib/ai";
 import { normalizeMerchant } from "@/lib/normalize";
 import { answer } from "@/lib/advisor";
+import { parseAgenda } from "@/lib/agenda-parser";
 
 const dayWord = (d: Date) => {
   const t = new Date(); t.setHours(0, 0, 0, 0); const x = new Date(d); x.setHours(0, 0, 0, 0);
@@ -22,9 +23,22 @@ export async function POST(req: Request) {
   const { text, pending } = await req.json() as { text: string; pending?: { item: ParsedCommand & { date: string }; ask: string } };
   if (!text?.trim()) return NextResponse.json({ say: "Não ouvi nada. Pode repetir?" });
 
+  // Agenda: "marcar dentista amanhã às 15h"
+  const ag = !pending ? parseAgenda(text) : null;
+  if (ag) {
+    await db.event.create({ data: { userId, title: ag.title, type: ag.type, date: ag.date, time: ag.time, amountCents: ag.amountCents } });
+    return NextResponse.json({ say: `Marquei na agenda: ${ag.title}, ${ag.date.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" })}${ag.time ? ` às ${ag.time}` : ""}${ag.amountCents ? `, ${brl(ag.amountCents)}` : ""}.`, changed: true });
+  }
+  // Recorrente: "aluguel 1.400 todo mês dia 8"
+  let recurring = false, recDay: number | null = null;
+  let text2 = text;
+  if (!pending && /\b(todo m[eê]s|todos os meses|mensalmente|mensal)\b/i.test(text)) {
+    recurring = true;
+    text2 = text.replace(/\b(todo m[eê]s|todos os meses|mensalmente|mensal)\b/gi, " ").replace(/\bdia (\d{1,2})\b/i, (_, d) => { recDay = Number(d); return " "; });
+  }
   const accounts = await db.account.findMany({ where: { userId, archived: false }, orderBy: { createdAt: "asc" } });
   const names = accounts.map((a) => a.name);
-  let action = parseVoice(text, names);
+  let action = parseVoice(text2, names);
 
   // Resposta a uma pergunta anterior ("Com o que foi esse gasto de R$ 30?" / "Foi no cartão ou no débito?")
   if (pending) {
@@ -88,8 +102,10 @@ export async function POST(req: Request) {
     const cat = cls.categoryId ? await db.category.findUnique({ where: { id: cls.categoryId }, include: { parent: true } }) : null;
     const ids = await createTransaction(userId, {
       type: item.type, amountCents: item.amountCents!, description: desc, merchant: normalizeMerchant(desc), accountId: account.id,
-      categoryId: cls.categoryId, date: item.date, installments: item.installments, origin: "VOICE", confidence: cls.confidence,
+      categoryId: cls.categoryId, date: recurring && recDay ? (() => { const x = new Date(); x.setHours(12, 0, 0, 0); x.setDate(recDay!); if (x < new Date() && item.type === "EXPENSE") x.setMonth(x.getMonth() + 1); return x; })() : item.date,
+      installments: recurring ? null : item.installments, recurrence: recurring ? "monthly" : null, recurrenceMonths: 12, origin: "VOICE", confidence: cls.confidence,
     });
+    if (recurring) { created.push({ ids, say: `${desc} de ${brl(item.amountCents!)} todo mês${recDay ? `, dia ${recDay}` : ""}, em ${cat ? `${cat.parent ? cat.parent.name + " > " : ""}${cat.name}` : "Sem categoria"}. Agendei os próximos 12 meses` }); continue; }
     const catName = cat ? `${cat.parent ? cat.parent.name + " > " : ""}${cat.name}` : "Sem categoria";
     const how = account.type === "CREDIT_CARD" ? `na fatura do ${account.name}` : account.type === "WALLET" ? "no dinheiro" : `no ${account.name}`;
     created.push({ ids, say: `${brl(item.amountCents!)} em ${catName}, ${dayWord(item.date)}, ${how}${item.installments ? ` em ${item.installments}x` : ""}` });

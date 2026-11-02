@@ -41,13 +41,16 @@ Trocar de provedor é configuração — tudo passa por `src/lib/ai.ts`.
 | M6 Painéis com drill-down, ranking vs mês anterior e média 3 meses, previsão de saldo | `/inicio`, `/relatorios` |
 | M11 Consultor (“Com o que estou gastando mais?”, “O que estou fazendo de errado?”, limite no grátis) | `/consultor` |
 | M14 Planos, cancelamento em 2 toques, política anti-incômodo, backoffice | `/ajustes#plano`, `/admin` |
+| Agenda: compromissos, lembretes e contas a pagar, com faturas e contas agendadas entrando sozinhas; também por voz (“marcar dentista amanhã às 15h”) | `/agenda` |
+| Fixas e recorrentes: “Repete todo mês” por 6 a 36 meses, por voz (“aluguel 1.400 todo mês dia 8”) e “Parar de repetir” | `/recorrentes` |
+| Relatório de despesas por período e agrupamento, com download em PDF (A4) e imagem (PNG) | `/relatorios/despesas` |
 | Cadastro de usuários (Clientes e Administradores): criar, editar, senha provisória com troca obrigatória, bloquear, excluir, auditoria | `/admin/usuarios`, `/admin/auditoria` |
 | M15/M16 Animações, Modo Simples, termos explicados, fonte até 200%, alto contraste, tema escuro | todo o app |
 | M17 Agente de voz (“Lançar gasolina 50”, vários itens, corrigir/apagar o último, perguntas) | botão 🎙️ |
 | PWA (instalável, offline, atalhos, destino de compartilhamento) | `public/` |
 
 ## Próximas fases (roadmap)
-- **F2**: importação OFX/CSV/PDF, NFC-e com itens, orçamentos e metas, alertas push/e-mail, dívidas e plano de quitação, contas a pagar com leitor de boleto.
+- **F2**: importação OFX/CSV/PDF, NFC-e com itens, orçamentos e metas, alertas push/e-mail (incluindo avisos da agenda), dívidas e plano de quitação, contas a pagar com leitor de boleto.
 - **F3**: Família, investimentos e patrimônio, gamificação.
 - **F4**: Open Finance (Pluggy/Belvo), app Android companheiro, multimoeda, IRPF.
 

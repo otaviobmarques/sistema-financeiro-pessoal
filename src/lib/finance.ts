@@ -14,7 +14,7 @@ const addMonths = (d: Date, n: number) => { const x = new Date(d); const day = x
 
 export type NewTx = {
   type: TxType; amountCents: number; description: string; accountId: string; toAccountId?: string | null;
-  categoryId?: string | null; date: Date; status?: TxStatus; installments?: number | null; recurrence?: "monthly" | null;
+  categoryId?: string | null; date: Date; status?: TxStatus; installments?: number | null; recurrence?: "monthly" | null; recurrenceMonths?: number | null;
   merchant?: string | null; cnpj?: string | null; tags?: string[]; notes?: string | null; origin?: TxOrigin; confidence?: number | null; receiptId?: string | null;
 };
 
@@ -45,7 +45,8 @@ export async function createTransaction(userId: string, t: NewTx): Promise<strin
         receiptId: i === 0 ? t.receiptId ?? null : null });
     }
   } else if (t.recurrence === "monthly") {
-    for (let i = 0; i < 12; i++) {
+    const months = Math.min(Math.max(t.recurrenceMonths ?? 12, 2), 60);
+    for (let i = 0; i < months; i++) {
       const date = addMonths(t.date, i);
       rows.push({ ...base, amountCents: t.amountCents, date, recurrence: "monthly", origin: i === 0 ? base.origin : "RECURRENCE",
         status: date <= today ? t.status ?? "PAID" : "PENDING",

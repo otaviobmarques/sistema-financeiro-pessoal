@@ -11,7 +11,7 @@ type Tx = { id: string; type: string; amount: string; description: string; accou
 
 const today = () => new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
 
-export function TxForm({ accounts, categories, defaultAccountId, tx }: { accounts: Acc[]; categories: Cat[]; defaultAccountId?: string; tx?: Tx }) {
+export function TxForm({ accounts, categories, defaultAccountId, tx, recurring = false }: { accounts: Acc[]; categories: Cat[]; defaultAccountId?: string; tx?: Tx; recurring?: boolean }) {
   const router = useRouter();
   const [state, action, pending] = useActionState(saveTransaction, undefined);
   const [type, setType] = useState(tx?.type ?? "EXPENSE");
@@ -19,6 +19,7 @@ export function TxForm({ accounts, categories, defaultAccountId, tx }: { account
   const [cat, setCat] = useState<string>(tx?.categoryId ?? "");
   const [touchedCat, setTouchedCat] = useState(Boolean(tx));
   const [more, setMore] = useState(Boolean(tx));
+  const [rec, setRec] = useState(recurring);
   const [toast, setToast] = useState<{ ids: string[] } | null>(null);
   const [accountId, setAccountId] = useState(tx?.accountId ?? defaultAccountId ?? accounts[0]?.id);
   const formRef = useRef<HTMLFormElement>(null);
@@ -84,14 +85,20 @@ export function TxForm({ accounts, categories, defaultAccountId, tx }: { account
       </div>
       {type === "TRANSFER" && <div><label className="label" htmlFor="date">Data</label><input id="date" name="date" type="date" defaultValue={tx?.date ?? today()} className="input" /></div>}
 
+      {!tx && type !== "TRANSFER" && (
+        <div className={`card space-y-2 ${rec ? "ring-2 ring-sobbra" : ""}`}>
+          <label className="flex cursor-pointer items-start gap-3"><input type="checkbox" name="recurrence" value="monthly" checked={rec} onChange={(e) => setRec(e.target.checked)} className="mt-0.5 h-5 w-5" />
+            <span><b>Repete todo mês</b><span className="muted block text-sm">Aluguel, salário, escola, assinatura. Os próximos meses ficam agendados como pendentes.</span></span></label>
+          {rec && <div><label className="label" htmlFor="recurrenceMonths">Por quantos meses</label><select id="recurrenceMonths" name="recurrenceMonths" defaultValue="12" className="input"><option value="6">6 meses</option><option value="12">12 meses</option><option value="24">24 meses</option><option value="36">36 meses</option></select></div>}
+        </div>
+      )}
       <button type="button" className="muted text-sm font-semibold" onClick={() => setMore(!more)}>{more ? "− Menos opções" : "+ Mais opções"}</button>
       {more && (
         <div className="card fill-in space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <div><label className="label" htmlFor="status">Situação</label><select id="status" name="status" defaultValue={tx?.status ?? "PAID"} className="input"><option value="PAID">{type === "INCOME" ? "Recebido" : "Pago"}</option><option value="PENDING">Pendente</option></select></div>
-            {!tx && type === "EXPENSE" && <div><label className="label" htmlFor="installments">Parcelas</label><select id="installments" name="installments" className="input" defaultValue={1}>{Array.from({ length: 24 }, (_, i) => <option key={i} value={i + 1}>{i === 0 ? "À vista" : `${i + 1}x`}</option>)}</select></div>}
+            {!tx && type === "EXPENSE" && !rec && <div><label className="label" htmlFor="installments">Parcelas</label><select id="installments" name="installments" className="input" defaultValue={1}>{Array.from({ length: 24 }, (_, i) => <option key={i} value={i + 1}>{i === 0 ? "À vista" : `${i + 1}x`}</option>)}</select></div>}
           </div>
-          {!tx && <label className="flex items-center gap-2"><input type="checkbox" name="recurrence" value="monthly" className="h-5 w-5" /> Repete todo mês (aluguel, salário, assinatura)</label>}
           <div><label className="label" htmlFor="tags">Tags</label><input id="tags" name="tags" defaultValue={tx?.tags} className="input" placeholder="#trabalho #viagem" /></div>
           <div><label className="label" htmlFor="notes">Observação</label><textarea id="notes" name="notes" defaultValue={tx?.notes} className="input min-h-[80px] py-2" /></div>
           {isCard && <p className="muted text-xs">💳 Compras no cartão caem automaticamente na fatura certa, conforme o dia de fechamento.</p>}

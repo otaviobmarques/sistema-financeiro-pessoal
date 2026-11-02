@@ -53,6 +53,13 @@ async function main() {
   const inv = await cardInvoices(u.id, card.id);
   for (const i of inv.invoices.filter((x) => x.due < now && x.total > x.paid))
     await createTransaction(u.id, { type: "TRANSFER", amountCents: i.total - i.paid, description: "Pagamento de fatura", accountId: nu.id, toAccountId: card.id, date: i.due });
+  const day = (n: number) => { const x = new Date(now); x.setDate(x.getDate() + n); x.setHours(12, 0, 0, 0); return x; };
+  await db.event.createMany({ data: [
+    { userId: u.id, title: "Dentista", type: "compromisso", date: day(1), time: "15:00" },
+    { userId: u.id, title: "Reunião com cliente do freela", type: "compromisso", date: day(3), time: "10:30" },
+    { userId: u.id, title: "IPVA 3ª parcela", type: "conta", date: day(6), amountCents: 41200 },
+    { userId: u.id, title: "Revisar gastos da semana", type: "lembrete", date: day(4), time: "20:00" },
+  ] });
   console.log("Seed ok: demo@sobbra.app / sobbra123");
 }
 main().finally(() => db.$disconnect());

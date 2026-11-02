@@ -12,6 +12,13 @@ import { classify, learn } from "@/lib/classify";
 import { parseMoney } from "@/lib/money";
 import { keyOf, normalizeMerchant } from "@/lib/normalize";
 
+/** Usa o nome conhecido ("ifood" -> "iFood"); senao mantem o texto da pessoa com a primeira letra maiuscula. */
+function niceDescription(raw: string) {
+  const t = raw.trim(); const known = normalizeMerchant(t);
+  const titled = t.toLowerCase().replace(/(^|\s)\S/g, (c) => c.toUpperCase());
+  return known !== titled ? known : t.charAt(0).toUpperCase() + t.slice(1);
+}
+
 export type FormState = { error?: string; ok?: string } | undefined;
 
 // ---------- Conta e onboarding (M1) ----------
@@ -123,7 +130,7 @@ const txSchema = z.object({
   type: z.nativeEnum(TxType), amount: z.string().min(1, "Informe o valor"), description: z.string().default(""),
   accountId: z.string().min(1, "Escolha a conta"), toAccountId: z.string().optional(), categoryId: z.string().optional(),
   date: z.string().min(1), status: z.enum(["PAID", "PENDING"]).default("PAID"), installments: z.string().optional(),
-  recurrence: z.string().optional(), tags: z.string().optional(), notes: z.string().optional(), merchant: z.string().optional(),
+  recurrence: z.string().optional(), recurrenceMonths: z.string().optional(), tags: z.string().optional(), notes: z.string().optional(), merchant: z.string().optional(),
 });
 
 export async function saveTransaction(_: FormState, fd: FormData): Promise<FormState & { ids?: string[] }> {
@@ -152,9 +159,9 @@ export async function saveTransaction(_: FormState, fd: FormData): Promise<FormS
     return { ok: "Lançamento atualizado", ids: [editId] };
   }
   const ids = await createTransaction(user.id, {
-    type: p.data.type, amountCents, description: p.data.description ? normalizeMerchant(p.data.description) : (p.data.type === "INCOME" ? "Entrada" : "Gasto"),
+    type: p.data.type, amountCents, description: p.data.description ? niceDescription(p.data.description) : (p.data.type === "INCOME" ? "Entrada" : "Gasto"),
     accountId: p.data.accountId, toAccountId: p.data.toAccountId || null, categoryId, date, status: p.data.status,
-    installments: p.data.installments ? Number(p.data.installments) : null, recurrence: p.data.recurrence === "monthly" ? "monthly" : null,
+    installments: p.data.installments ? Number(p.data.installments) : null, recurrence: p.data.recurrence === "monthly" ? "monthly" : null, recurrenceMonths: p.data.recurrenceMonths ? Number(p.data.recurrenceMonths) : 12,
     merchant: p.data.merchant ? normalizeMerchant(p.data.merchant) : p.data.description && p.data.type !== "TRANSFER" ? normalizeMerchant(p.data.description) : null, tags, notes: p.data.notes || null, confidence,
   });
   revalidatePath("/lancamentos"); revalidatePath("/inicio");
@@ -300,4 +307,54 @@ export async function changePassword(_: FormState, fd: FormData): Promise<FormSt
   if (next === current) return { error: "Escolha uma senha diferente da atual" };
   await db.user.update({ where: { id: user.id }, data: { passwordHash: await bcrypt.hash(next, 12), mustChangePassword: false } });
   redirect(user.role === "ADMIN" && !user.onboarded ? "/admin" : user.onboarded ? "/inicio" : "/onboarding");
+}
+
+// ---------- Agenda ----------
+const EVENT_TYPES = ["compromisso", "lembrete", "conta"] as const;
+
+export async function createEvent(_: FormState, fd: FormData): Promise<FormState> {
+  const user = await requireUser();
+  const title = String(fd.get("title") || "").trim();
+  const type = String(fd.get("type") || "compromisso");
+  const date = String(fd.get("date") || "");
+  if (!title) return { error: "Diga o que é, por exemplo: Dentista" };
+  if (!EVENT_TYPES.includes(type as any)) return { error: "Tipo inválido" };
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return { error: "Escolha o dia" };
+  const time = String(fd.get("time") || "");
+  await db.event.create({ data: { userId: user.id, title, type, date: new Date(date + "T12:00:00"), time: /^\d{2}:\d{2}$/.test(time) ? time : null, amountCents: parseMoney(String(fd.get("amount") || "")) } });
+  revalidatePath("/agenda");
+  return { ok: "Salvo na agenda" };
+}
+
+export async function deleteEvent(id: string) {
+  const user = await requireUser();
+  await db.event.deleteMany({ where: { id, userId: user.id } });
+  revalidatePath("/agenda");
+}
+
+/** "Paguei": conta da agenda vira despesa; lancamento pendente vira pago. */
+export async function payAgendaItem(ref: { eventId?: string; txId?: string }) {
+  const user = await requireUser();
+  if (ref.txId) {
+    const t = await db.transaction.findFirst({ where: { id: ref.txId, userId: user.id } });
+    if (t) await db.transaction.update({ where: { id: t.id }, data: { status: "PAID", paidAt: new Date(), date: t.date > new Date() ? new Date() : t.date } });
+  } else if (ref.eventId) {
+    const e = await db.event.findFirst({ where: { id: ref.eventId, userId: user.id } });
+    const account = await db.account.findFirst({ where: { userId: user.id, archived: false, type: { in: ["CHECKING", "WALLET", "SAVINGS"] } }, orderBy: { createdAt: "asc" } });
+    if (e && account && e.amountCents) {
+      const c = await classify(user.id, { text: e.title, merchant: e.title, kind: "EXPENSE" });
+      await createTransaction(user.id, { type: "EXPENSE", amountCents: e.amountCents, description: e.title, accountId: account.id, categoryId: c.categoryId, date: new Date() });
+    }
+    if (e) await db.event.delete({ where: { id: e.id } });
+  }
+  revalidatePath("/agenda"); revalidatePath("/inicio"); revalidatePath("/lancamentos");
+}
+
+// ---------- Fixas e recorrentes ----------
+/** Para de repetir: remove (para a lixeira) os meses futuros ainda pendentes. */
+export async function stopRecurrence(groupId: string) {
+  const user = await requireUser();
+  const r = await db.transaction.updateMany({ where: { userId: user.id, groupId, recurrence: "monthly", deletedAt: null, status: "PENDING", date: { gt: new Date() } }, data: { deletedAt: new Date() } });
+  revalidatePath("/recorrentes"); revalidatePath("/lancamentos"); revalidatePath("/agenda"); revalidatePath("/inicio");
+  return r.count;
 }

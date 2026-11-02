@@ -34,7 +34,7 @@ export default async function Relatorios({ searchParams }: { searchParams: Promi
           <ul>{d.merchants.map((x) => <li key={x.name}><Link href={`/lancamentos?mes=${month}&q=${encodeURIComponent(x.name)}`} className="flex min-h-[40px] items-center justify-between"><span>{x.name} <span className="muted text-xs">{Math.round(x.pct * 100)}%</span></span><Money cents={x.total} /></Link></li>)}</ul></section>
         <section className="card"><h2 className="mb-2 font-semibold">Últimos 6 meses</h2><MonthBars data={d.monthly} /><h2 className="mb-2 mt-4 font-semibold">Dia da semana</h2><WeekHeat data={d.weekday} /></section>
       </div>
-      <div className="mt-4 flex gap-2"><a className="btn-ghost" href="/api/export?formato=csv">⬇️ Exportar CSV</a></div>
+      <div className="mt-4 flex gap-2"><Link className="btn-dark" href="/relatorios/despesas">Relatório de despesas (PDF e imagem)</Link><a className="btn-ghost" href="/api/export?formato=csv">⬇️ Exportar CSV</a></div>
     </div>
   );
 }

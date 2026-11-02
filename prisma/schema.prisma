@@ -92,6 +92,22 @@ model User {
   aiUsage      AiUsage[]
   chat         ChatMessage[]
   auditActor   AuditLog[] @relation("actor")
+  events       Event[]
+}
+
+// Agenda: compromissos, lembretes e contas a pagar (faturas e contas agendadas entram sozinhas)
+model Event {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title       String
+  type        String   // "compromisso" | "lembrete" | "conta"
+  date        DateTime
+  time        String?  // "HH:MM"
+  amountCents Int?
+  createdAt   DateTime @default(now())
+
+  @@index([userId, date])
 }
 
 // Registro das acoes administrativas (LGPD: rastreabilidade de quem alterou o que)
