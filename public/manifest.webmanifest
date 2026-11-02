@@ -1,0 +1,28 @@
+{
+  "name": "Sobbra — faça o seu dinheiro sobrar",
+  "short_name": "Sobbra",
+  "description": "Gestão financeira pessoal sem esforço: voz, foto do comprovante e insights.",
+  "start_url": "/inicio",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0E1A17",
+  "theme_color": "#0B4F3A",
+  "lang": "pt-BR",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "/icons/icon.svg", "sizes": "any", "type": "image/svg+xml" }
+  ],
+  "shortcuts": [
+    { "name": "Falar com o Sobbra", "short_name": "Falar", "url": "/inicio?falar=1" },
+    { "name": "Foto do comprovante", "short_name": "Foto", "url": "/comprovantes" },
+    { "name": "Adicionar gasto", "short_name": "Adicionar", "url": "/lancamentos/novo" }
+  ],
+  "share_target": {
+    "action": "/api/share",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": { "title": "title", "text": "text", "files": [{ "name": "files", "accept": ["image/*", "application/pdf"] }] }
+  }
+}

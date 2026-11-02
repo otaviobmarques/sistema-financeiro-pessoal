@@ -1,0 +1,33 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root { --bg: #F6FAF8; --card: #FFFFFF; --text: #1F2A2E; --muted: #5B6B70; --line: #E3ECE8; --soft: #D7F5E6; }
+.dark { --bg: #0E1A17; --card: #15241F; --text: #E8F1ED; --muted: #9DB2AA; --line: #233630; --soft: #17352B; }
+html.contrast { --muted: var(--text); --line: var(--text); }
+body { background: var(--bg); color: var(--text); font-feature-settings: "tnum" 1; -webkit-tap-highlight-color: transparent; }
+.card { @apply rounded-2xl p-4 shadow-sm; background: var(--card); border: 1px solid var(--line); }
+.muted { color: var(--muted); }
+.line { border-color: var(--line); }
+.soft { background: var(--soft); }
+.btn { @apply inline-flex min-h-[48px] items-center justify-center gap-2 rounded-xl px-4 font-semibold transition active:scale-[0.97] disabled:opacity-50; }
+.btn-primary { @apply btn bg-sobbra text-white hover:brightness-95; }
+.btn-dark { @apply btn bg-floresta text-white hover:brightness-110; }
+.btn-ghost { @apply btn; border: 1px solid var(--line); background: var(--card); }
+.input { @apply min-h-[48px] w-full rounded-xl px-3 outline-none focus:ring-2 focus:ring-sobbra; background: var(--card); border: 1px solid var(--line); color: var(--text); }
+.label { @apply mb-1 block text-sm font-medium; }
+.hide-values .money { filter: blur(8px); }
+.skeleton { @apply animate-pulse rounded-xl; background: var(--line); }
+
+/* RF-152: animacao de "scanner" do comprovante */
+@keyframes scan { 0% { top: 0 } 50% { top: calc(100% - 4px) } 100% { top: 0 } }
+.scanner::after { content: ""; position: absolute; left: 0; right: 0; height: 4px; background: #19C37D; box-shadow: 0 0 16px #19C37D; animation: scan 1.6s ease-in-out infinite; }
+@keyframes fillin { from { opacity: 0; transform: translateY(6px) } to { opacity: 1; transform: none } }
+.fill-in { animation: fillin 300ms ease-out both; }
+@keyframes pulse-ring { 0% { box-shadow: 0 0 0 0 rgba(25,195,125,.6) } 100% { box-shadow: 0 0 0 22px rgba(25,195,125,0) } }
+.listening { animation: pulse-ring 1.2s ease-out infinite; }
+
+/* Diretrizes de motion: respeitar reduzir movimento (RNF-13) */
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 1ms !important; transition-duration: 1ms !important; } }
+html.no-motion *, html.no-motion *::before, html.no-motion *::after { animation-duration: 1ms !important; transition-duration: 1ms !important; }
+@view-transition { navigation: auto; }

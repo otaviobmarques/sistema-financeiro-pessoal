@@ -1,0 +1,54 @@
+# Sobbra — faça o seu dinheiro sobrar
+
+MVP do SaaS de gestão financeira pessoal (web responsivo + PWA), seguindo o Documento de Requisitos v1.5.
+
+## Rodar localmente
+
+Requisitos: Node 20+, PostgreSQL 14+.
+
+```bash
+cp .env.example .env        # ajuste DATABASE_URL, AUTH_SECRET e FILE_ENC_KEY
+npm install
+npx prisma db push          # cria as tabelas
+npm run db:seed             # opcional: demo@sobbra.app / sobbra123 (admin@sobbra.app = backoffice)
+npm run dev                 # http://localhost:3000
+npm test                    # testes do interpretador de voz, valores e faturas
+```
+
+Gere uma `FILE_ENC_KEY` com `openssl rand -hex 32` e um `AUTH_SECRET` com `openssl rand -base64 32`.
+
+## IA (seção 8.2)
+Sem chave, o app funciona em **modo local**: voz interpretada por regras em pt-BR, classificação por regras/histórico/base de palavras-chave, consultor com números do banco. Comprovantes ficam guardados e o usuário preenche os campos.
+
+Para ligar a leitura de comprovantes e respostas em linguagem natural, defina no `.env`:
+- `AI_PROVIDER=groq` + `GROQ_API_KEY` (grátis, sem treino com os dados), ou
+- `AI_PROVIDER=openrouter` + `OPENROUTER_API_KEY`, ou
+- `AI_PROVIDER=anthropic` + `ANTHROPIC_API_KEY` (pago, para produção).
+
+Trocar de provedor é configuração — tudo passa por `src/lib/ai.ts`.
+
+## O que está pronto (fase MVP)
+| Módulo | Onde |
+|---|---|
+| M1 Conta e onboarding (e-mail/senha, 3 passos, exportar/excluir conta – LGPD) | `/cadastro`, `/onboarding`, `/ajustes` |
+| M2 Contas, cartões e faturas (fechamento/vencimento, pagar fatura, ajuste de saldo, saldo atual × previsto) | `/contas` |
+| M3 Lançamentos (receitas, despesas, transferências, parcelas, recorrências, tags, filtros com total, edição em massa, lixeira 30 dias) | `/lancamentos` |
+| M4 Captura de comprovantes (câmera, galeria, PDF, compartilhar do celular, fila assíncrona, duplicidade, criptografia AES-256) | `/comprovantes` |
+| M5 Classificação em camadas (regras → histórico → base → IA) com aprendizado “aplicar a todos” | `src/lib/classify.ts` |
+| M6 Painéis com drill-down, ranking vs mês anterior e média 3 meses, previsão de saldo | `/inicio`, `/relatorios` |
+| M11 Consultor (“Com o que estou gastando mais?”, “O que estou fazendo de errado?”, limite no grátis) | `/consultor` |
+| M14 Planos, cancelamento em 2 toques, política anti-incômodo, backoffice | `/ajustes#plano`, `/admin` |
+| M15/M16 Animações, Modo Simples, termos explicados, fonte até 200%, alto contraste, tema escuro | todo o app |
+| M17 Agente de voz (“Lançar gasolina 50”, vários itens, corrigir/apagar o último, perguntas) | botão 🎙️ |
+| PWA (instalável, offline, atalhos, destino de compartilhamento) | `public/` |
+
+## Próximas fases (roadmap)
+- **F2**: importação OFX/CSV/PDF, NFC-e com itens, orçamentos e metas, alertas push/e-mail, dívidas e plano de quitação, contas a pagar com leitor de boleto.
+- **F3**: Família, investimentos e patrimônio, gamificação.
+- **F4**: Open Finance (Pluggy/Belvo), app Android companheiro, multimoeda, IRPF.
+
+## Antes de produção
+- Gateway de pagamento real (hoje a troca de plano é direta, para testes).
+- Login com Google/Apple, 2FA e passkeys (RF-001/002).
+- Row-level security no Postgres (hoje o isolamento é feito na aplicação: toda consulta filtra por `userId`).
+- Armazenamento de arquivos em S3/R2 (hoje em disco local, criptografado), limite de tentativas em Redis, pentest, revisão jurídica.

@@ -1,0 +1,229 @@
+// Modelo de dados do Sobbra (secao 8.3 do documento de requisitos).
+// Valores monetarios em centavos (Int) para evitar erro de arredondamento.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Plan {
+  FREE
+  PRO
+  FAMILY
+}
+
+enum AccountType {
+  CHECKING   // corrente
+  SAVINGS    // poupanca
+  WALLET     // carteira / dinheiro
+  INVESTMENT
+  MEAL       // vale-refeicao / alimentacao
+  CREDIT_CARD
+}
+
+enum TxType {
+  INCOME
+  EXPENSE
+  TRANSFER
+}
+
+enum TxStatus {
+  PAID
+  PENDING
+}
+
+enum TxOrigin {
+  MANUAL
+  VOICE
+  RECEIPT
+  IMPORT
+  OPEN_FINANCE
+  RECURRENCE
+}
+
+enum ReceiptStatus {
+  QUEUED
+  PROCESSING
+  READY      // extraido, aguardando confirmacao
+  CONFIRMED
+  FAILED
+  DUPLICATE
+}
+
+model User {
+  id              String    @id @default(cuid())
+  name            String
+  email           String    @unique
+  passwordHash    String
+  plan            Plan      @default(FREE)
+  planRenewsAt    DateTime?
+  planCanceledAt  DateTime?
+  monthlyIncome   Int?      // centavos, informado no onboarding
+  goal            String?   // "sair_do_vermelho" | "guardar" | "investir"
+  onboarded       Boolean   @default(false)
+  simpleMode      Boolean   @default(true)  // RF-160: Modo Simples por padrao
+  hideValues      Boolean   @default(false) // RF-004
+  reduceMotion    Boolean   @default(false)
+  dailyReminder   String?   // "HH:MM" RF-167
+  lastUpsellAt    DateTime? // RF-147
+  createdAt       DateTime  @default(now())
+
+  accounts     Account[]
+  categories   Category[]
+  transactions Transaction[]
+  receipts     Receipt[]
+  rules        Rule[]
+  merchants    MerchantMemory[]
+  aiUsage      AiUsage[]
+  chat         ChatMessage[]
+}
+
+model Account {
+  id           String      @id @default(cuid())
+  userId       String
+  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name         String
+  type         AccountType
+  institution  String?
+  initialCents Int         @default(0)
+  color        String      @default("#19C37D")
+  archived     Boolean     @default(false)
+  // Somente cartao de credito (RF-011)
+  limitCents   Int?
+  closingDay   Int?
+  dueDay       Int?
+  lastDigits   String?
+  createdAt    DateTime    @default(now())
+
+  transactions Transaction[] @relation("account")
+  transfersIn  Transaction[] @relation("toAccount")
+
+  @@index([userId])
+}
+
+model Category {
+  id        String     @id @default(cuid())
+  userId    String
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  icon      String
+  color     String
+  kind      TxType     // INCOME ou EXPENSE
+  parentId  String?
+  parent    Category?  @relation("sub", fields: [parentId], references: [id], onDelete: Cascade)
+  children  Category[] @relation("sub")
+  slug      String     // chave estavel p/ motor de classificacao (ex.: "transporte.combustivel")
+  transactions Transaction[]
+  rules     Rule[]
+
+  @@unique([userId, slug])
+  @@index([userId])
+}
+
+model Transaction {
+  id            String     @id @default(cuid())
+  userId        String
+  user          User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type          TxType
+  amountCents   Int        // sempre positivo; o tipo define o sinal
+  description   String
+  merchant      String?
+  cnpj          String?
+  categoryId    String?
+  category      Category?  @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  accountId     String
+  account       Account    @relation("account", fields: [accountId], references: [id], onDelete: Cascade)
+  toAccountId   String?
+  toAccount     Account?   @relation("toAccount", fields: [toAccountId], references: [id], onDelete: Cascade)
+  date          DateTime   // data de competencia
+  paidAt        DateTime?
+  status        TxStatus   @default(PAID)
+  invoiceMonth  String?    // "YYYY-MM" da fatura quando conta = cartao
+  installment   Int?
+  installments  Int?
+  groupId       String?    // agrupa parcelas e recorrencias
+  recurrence    String?    // "monthly" quando for recorrente
+  tags          String[]   @default([])
+  notes         String?
+  origin        TxOrigin   @default(MANUAL)
+  confidence    Float?
+  receiptId     String?    @unique
+  receipt       Receipt?   @relation(fields: [receiptId], references: [id], onDelete: SetNull)
+  deletedAt     DateTime?  // lixeira 30 dias (RF-166)
+  createdAt     DateTime   @default(now())
+
+  @@index([userId, date])
+  @@index([userId, deletedAt])
+}
+
+model Receipt {
+  id          String        @id @default(cuid())
+  userId      String
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  filePath    String        // arquivo criptografado (RF-037)
+  mimeType    String
+  fileHash    String        // sha256 p/ duplicidade (RF-035)
+  status      ReceiptStatus @default(QUEUED)
+  docType     String?       // cupom, nfce, pix, ted, boleto, maquininha, manuscrito, delivery
+  extracted   Json?
+  confidence  Json?
+  error       String?
+  transaction Transaction?
+  createdAt   DateTime      @default(now())
+
+  @@index([userId, status])
+  @@index([userId, fileHash])
+}
+
+model Rule {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  matchText  String   // texto normalizado contido na descricao/estabelecimento
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  priority   Int      @default(0)
+  createdAt  DateTime @default(now())
+
+  @@index([userId])
+}
+
+// Historico do mesmo estabelecimento (camada 2 do RF-041)
+model MerchantMemory {
+  id         String @id @default(cuid())
+  userId     String
+  user       User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  key        String // nome normalizado ou CNPJ
+  categoryId String
+  hits       Int    @default(1)
+
+  @@unique([userId, key])
+}
+
+model AiUsage {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind      String   // "chat" | "vision" | "voice" | "classify"
+  provider  String
+  tokens    Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([userId, kind, createdAt])
+}
+
+model ChatMessage {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      String   // "user" | "assistant"
+  content   String
+  data      Json?
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+}
