@@ -40,7 +40,7 @@ export default async function Lancamentos({ searchParams }: { searchParams: Prom
   return (
     <div>
       <div className="mb-3 flex items-center justify-between">
-        <h1 className="text-xl font-bold">Lançamentos</h1>
+        <div><p className="eyebrow">Movimentos</p><h1 className="text-[30px] leading-tight md:text-[38px]">Cada movimento, <i>mais clareza.</i></h1></div>
         <div className="flex gap-2"><Link href="/importar" className="btn-ghost min-h-[44px]">Importar extrato</Link><Link href="/lancamentos/novo" className="btn-primary min-h-[44px]">+ Adicionar</Link></div>
       </div>
       <form className="card mb-3 grid gap-2 sm:grid-cols-6">
@@ -51,13 +51,13 @@ export default async function Lancamentos({ searchParams }: { searchParams: Prom
         </select>
         <select name="cat" defaultValue={sp.cat ?? ""} className="input"><option value="">Todas as categorias</option>{categories.map((c) => <option key={c.id} value={c.id}>{c.parent ? `${c.parent.name} › ` : ""}{c.name}</option>)}</select>
         <select name="conta" defaultValue={sp.conta ?? ""} className="input"><option value="">Todas as contas</option>{accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select>
-        <div className="flex gap-2"><select name="tipo" defaultValue={sp.tipo ?? ""} className="input"><option value="">Tudo</option><option value="EXPENSE">Saiu</option><option value="INCOME">Entrou</option><option value="TRANSFER">Transferências</option></select><button className="btn-dark">Filtrar</button></div>
+        <div className="flex gap-2"><select name="tipo" defaultValue={sp.tipo ?? ""} className="input"><option value="">Tudo</option><option value="EXPENSE">Saídas</option><option value="INCOME">Entradas</option><option value="TRANSFER">Transferências</option></select><button className="btn-dark">Filtrar</button></div>
       </form>
       {/* Total sempre visivel em qualquer filtro (RF-027) */}
       <div className="soft sticky top-0 z-10 mb-3 flex flex-wrap items-center gap-x-6 gap-y-1 rounded-xl px-4 py-3 text-sm">
-        <span>{txs.length} lançamento{txs.length === 1 ? "" : "s"}</span>
-        <span>Entrou <Money cents={income} className="font-bold text-sobbra" /></span>
-        <span>Saiu <Money cents={expense} className="font-bold text-coral" /></span>
+        <span>{txs.length} movimento{txs.length === 1 ? "" : "s"}</span>
+        <span>Entradas <b>+ <Money cents={income} /></b></span>
+        <span>Saídas <b>− <Money cents={expense} /></b></span>
         <span>Resultado <Money cents={income - expense} className="font-bold" /></span>
         {month && <span className="ml-auto flex gap-2"><Link href={link({ mes: monthKey(new Date(y, m - 2, 1)) })}>‹ anterior</Link><Link href={link({ mes: monthKey(new Date(y, m, 1)) })}>próximo ›</Link></span>}
       </div>

@@ -15,8 +15,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   return (
     <div className={user.hideValues ? "hide-values" : ""}>
       <Nav admin={isAdmin(user)} unread={unread} />
-      <main className="mx-auto max-w-5xl px-4 pb-32 pt-4 md:ml-60 md:pb-12 md:pt-8 lg:ml-auto lg:pl-64">{children}</main>
-      <VoiceButton />
+      <main className="mx-auto max-w-[1200px] px-5 pb-40 pt-5 md:ml-64 md:px-8 md:pb-12 md:pt-8">{children}</main>
+      <VoiceButton variant="none" />
     </div>
   );
 }

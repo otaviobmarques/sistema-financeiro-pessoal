@@ -33,8 +33,8 @@ export function MonthBars({ data }: { data: { month: string; income: number; exp
         <XAxis dataKey="label" tickLine={false} axisLine={false} stroke="var(--muted)" fontSize={12} />
         <YAxis tickFormatter={short} tickLine={false} axisLine={false} stroke="var(--muted)" fontSize={11} width={48} />
         <Tooltip {...tip} cursor={{ fill: "rgba(25,195,125,.08)" }} formatter={(v: number, n: string) => [brl(v), n === "income" ? "Entrou" : "Saiu"]} />
-        <Bar dataKey="income" fill="#19C37D" radius={[6, 6, 0, 0]} animationDuration={700} className="cursor-pointer" />
-        <Bar dataKey="expense" fill="#E5484D" radius={[6, 6, 0, 0]} animationDuration={700} className="cursor-pointer" />
+        <Bar dataKey="income" fill="#123E32" radius={[6, 6, 0, 0]} animationDuration={700} className="cursor-pointer" />
+        <Bar dataKey="expense" fill="#A54632" radius={[6, 6, 0, 0]} animationDuration={700} className="cursor-pointer" />
       </BarChart>
     </ResponsiveContainer>
   );
@@ -44,13 +44,13 @@ export function BalanceLine({ data }: { data: { day: number; balance: number; fu
   return (
     <ResponsiveContainer width="100%" height={200}>
       <AreaChart data={data.map((d) => ({ ...d, past: d.future ? null : d.balance }))}>
-        <defs><linearGradient id="bl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#19C37D" stopOpacity={0.35} /><stop offset="1" stopColor="#19C37D" stopOpacity={0} /></linearGradient></defs>
+        <defs><linearGradient id="bl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#123E32" stopOpacity={0.35} /><stop offset="1" stopColor="#123E32" stopOpacity={0} /></linearGradient></defs>
         <XAxis dataKey="day" tickLine={false} axisLine={false} stroke="var(--muted)" fontSize={11} />
         <YAxis tickFormatter={short} tickLine={false} axisLine={false} stroke="var(--muted)" fontSize={11} width={48} />
-        <ReferenceLine y={0} stroke="#E5484D" strokeDasharray="4 4" />
+        <ReferenceLine y={0} stroke="#A54632" strokeDasharray="4 4" />
         <Tooltip {...tip} formatter={(v: number) => [brl(v), "Saldo"]} labelFormatter={(d) => `Dia ${d}`} />
-        <Area type="monotone" dataKey="balance" stroke="#19C37D" strokeDasharray="4 4" strokeOpacity={0.5} fill="none" animationDuration={900} />
-        <Area type="monotone" dataKey="past" stroke="#19C37D" strokeWidth={2.5} fill="url(#bl)" animationDuration={900} />
+        <Area type="monotone" dataKey="balance" stroke="#123E32" strokeDasharray="4 4" strokeOpacity={0.5} fill="none" animationDuration={900} />
+        <Area type="monotone" dataKey="past" stroke="#123E32" strokeWidth={2.5} fill="url(#bl)" animationDuration={900} />
       </AreaChart>
     </ResponsiveContainer>
   );

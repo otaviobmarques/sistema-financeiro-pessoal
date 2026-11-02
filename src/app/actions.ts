@@ -165,7 +165,7 @@ export async function saveTransaction(_: FormState, fd: FormData): Promise<FormS
     merchant: p.data.merchant ? normalizeMerchant(p.data.merchant) : p.data.description && p.data.type !== "TRANSFER" ? normalizeMerchant(p.data.description) : null, tags, notes: p.data.notes || null, confidence,
   });
   revalidatePath("/lancamentos"); revalidatePath("/inicio");
-  return { ok: "Pronto! Lançado.", ids };
+  return { ok: "Movimento salvo.", ids };
 }
 
 export async function deleteTransactions(ids: string[]) {

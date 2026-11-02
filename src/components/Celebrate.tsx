@@ -1,10 +1,10 @@
 "use client";
 // Chuva de moedas discreta (RF-155): no maximo uma por evento, respeita "reduzir movimento".
-export function celebrate(n = 44) {
+export function celebrate(n = 28) {
   if (typeof window === "undefined" || matchMedia("(prefers-reduced-motion: reduce)").matches || document.documentElement.classList.contains("no-motion")) return;
   const cv = document.createElement("canvas"); cv.style.cssText = "position:fixed;inset:0;pointer-events:none;z-index:60"; document.body.appendChild(cv);
   const dpr = devicePixelRatio || 1; cv.width = innerWidth * dpr; cv.height = innerHeight * dpr; const ctx = cv.getContext("2d")!; ctx.scale(dpr, dpr);
-  const P = Array.from({ length: n }, () => ({ x: Math.random() * innerWidth, y: -20 - Math.random() * innerHeight * 0.4, r: 6 + Math.random() * 6, vy: 2.5 + Math.random() * 3, vx: -1 + Math.random() * 2, a: Math.random() * 6, va: 0.08 + Math.random() * 0.12, c: Math.random() < 0.75 ? "#FFB020" : "#19C37D" }));
+  const P = Array.from({ length: n }, () => ({ x: Math.random() * innerWidth, y: -20 - Math.random() * innerHeight * 0.4, r: 6 + Math.random() * 6, vy: 2.5 + Math.random() * 3, vx: -1 + Math.random() * 2, a: Math.random() * 6, va: 0.08 + Math.random() * 0.12, c: Math.random() < 0.7 ? "#F0D875" : "#123E32" }));
   const t0 = performance.now();
   const frame = (t: number) => {
     ctx.clearRect(0, 0, innerWidth, innerHeight); let alive = false;

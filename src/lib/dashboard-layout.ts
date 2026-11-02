@@ -1,7 +1,7 @@
 // Blocos do painel inicial (RF-059): ordem e visibilidade por usuario.
 export const WIDGETS = {
-  resumo: "Resumo do mês", categorias: "Para onde foi o dinheiro", mesames: "Mês a mês e saldo", orcamentos: "Orçamentos",
-  metas: "Metas", agenda: "Próximos 7 dias", estabelecimentos: "Onde você mais gastou", semana: "Gasto por dia da semana",
+  resumo: "Resumo, compromissos e movimentos", categorias: "Para onde foi o dinheiro", mesames: "Mês a mês e saldo", orcamentos: "Orçamento do mês",
+  metas: "Metas", estabelecimentos: "Onde você mais gastou", semana: "Gasto por dia da semana",
 } as const;
 export type WidgetKey = keyof typeof WIDGETS;
 export const WIDE: WidgetKey[] = ["resumo"];

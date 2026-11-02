@@ -21,8 +21,8 @@ export function TxList({ txs, categories }: { txs: T[]; categories: { id: string
   const toggle = (id: string) => setSel((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
 
   const remove = (ids: string[]) => start(async () => {
-    if (!confirm(ids.length > 1 ? `Mover ${ids.length} lançamentos para a lixeira?` : "Mover para a lixeira? Você pode recuperar por 30 dias.")) return;
-    await deleteTransactions(ids); setSel(new Set()); setToast({ msg: "Movido para a lixeira.", ids }); router.refresh();
+    if (!confirm(ids.length > 1 ? `Excluir ${ids.length} movimentos? Eles ficam 30 dias na lixeira.` : `Excluir "${txs.find((t) => t.id === ids[0])?.description}"? Ele fica 30 dias na lixeira.`)) return;
+    await deleteTransactions(ids); setSel(new Set()); setToast({ msg: ids.length > 1 ? `${ids.length} movimentos foram para a lixeira.` : "Movimento enviado para a lixeira.", ids }); router.refresh();
   });
 
   const recat = (catId: string) => {
@@ -33,7 +33,7 @@ export function TxList({ txs, categories }: { txs: T[]; categories: { id: string
     setRulePrompt({ ids, cat: catId, merchant });
   };
 
-  if (!txs.length) return <div className="card muted text-center">Nenhum lançamento encontrado. Tente outro filtro ou <Link className="text-sobbra" href="/lancamentos/novo">adicione um</Link>.</div>;
+  if (!txs.length) return <div className="card muted text-center">Nenhum movimento com estes filtros. Limpe os filtros ou <Link className="text-sobbra" href="/lancamentos/novo">adicione um</Link>.</div>;
 
   return (
     <div className="space-y-4">

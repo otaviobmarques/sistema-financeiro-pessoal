@@ -26,25 +26,28 @@ export default async function Landing({ searchParams }: { searchParams: Promise<
       </header>
       <section className="grid items-center gap-10 py-10 md:grid-cols-2">
         <div>
-          <h1 className="font-marca text-4xl font-bold leading-tight text-floresta dark:text-sobbra md:text-5xl">Faça o seu dinheiro sobrar.</h1>
-          <p className="muted mt-4 text-lg">Você só tira a foto. O Sobbra anota, organiza e te avisa antes de o dinheiro acabar.</p>
+          <p className="eyebrow">Menos ruído. Mais clareza.</p>
+          <h1 className="mt-2 text-5xl leading-[1.05] text-floresta dark:text-[#ECEFE6] md:text-6xl">Seu dinheiro.<br />Mais espaço<br /><i>para você.</i></h1>
+          <p className="muted mt-4 text-lg">Organize o dia a dia e dê um lugar aos seus planos. No seu ritmo, sem julgamentos.</p>
           <ul className="mt-6 space-y-2">
-            <li>🎙️ Fale “lançar gasolina 50” e pronto: lançado e categorizado.</li>
-            <li>📷 Foto do comprovante vira lançamento em segundos.</li>
-            <li>📊 Veja onde gasta mais e quanto vai sobrar no fim do mês.</li>
-            <li>💬 Pergunte: “o que estou fazendo de errado?”</li>
+            <li>Registre por voz, foto do comprovante ou digitando. Você confere antes de salvar.</li>
+            <li>Veja quanto está livre no seu plano, com a conta explicada.</li>
+            <li>Contas a pagar, metas e orçamento num só lugar.</li>
+            <li>Pergunte sobre os seus próprios movimentos.</li>
           </ul>
-          <Link href="/cadastro" className="btn-primary mt-8 px-8 text-lg">Começar agora — é grátis</Link>
+          <Link href="/cadastro" className="btn-primary mt-8 px-8 text-lg">Começar do zero <span aria-hidden>→</span></Link>
           <p className="muted mt-3 text-sm">Sem anúncios. Cancele em 2 toques.</p>
         </div>
-        <div className="card mx-auto w-full max-w-sm">
-          <p className="muted text-sm">Quanto ainda posso gastar hoje</p>
-          <p className="text-4xl font-bold text-sobbra">R$ 87,40</p>
+        <div className="hero mx-auto w-full max-w-sm">
+          <p className="text-xs font-bold">Exemplo com dados fictícios</p>
+          <p className="mt-3 text-sm font-bold">No seu plano, ainda há</p>
+          <p className="serif text-4xl">R$ 1.600,00</p>
+          <p className="text-sm">Até 30 de novembro · Estimativa após contas pendentes e reserva planejada.</p>
           <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
-            <div className="soft rounded-xl p-3"><p className="muted">Entrou</p><p className="font-bold">R$ 4.200,00</p></div>
-            <div className="soft rounded-xl p-3"><p className="muted">Saiu</p><p className="font-bold text-coral">R$ 2.913,60</p></div>
+            <div className="rounded-xl bg-white p-3"><p className="text-xs">Entradas do mês</p><p className="font-bold">+ R$ 6.400,00</p></div>
+            <div className="rounded-xl bg-white p-3"><p className="text-xs">Saídas do mês</p><p className="font-bold">− R$ 3.150,00</p></div>
           </div>
-          <p className="mt-4 rounded-xl bg-ambar/15 p-3 text-sm">🪙 Sobraram R$ 320 este mês. Boa!</p>
+
         </div>
       </section>
       <section className="py-10">

@@ -8,7 +8,7 @@ import { deleteTransactions } from "@/app/actions";
 type Pending = { item: any; ask: string } | null;
 type Turn = { who: "voce" | "sobbra"; text: string };
 
-export function VoiceButton({ variant = "fab" }: { variant?: "fab" | "big" }) {
+export function VoiceButton({ variant = "fab" }: { variant?: "fab" | "big" | "none" }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [listening, setListening] = useState(false);
@@ -24,7 +24,8 @@ export function VoiceButton({ variant = "fab" }: { variant?: "fab" | "big" }) {
 
   useEffect(() => { try { setSpeak(localStorage.getItem("sobbra-voice-reply") === "1"); } catch {} }, []);
   // Atalho do PWA "Falar com o Sobbra" (RF-170)
-  useEffect(() => { if (variant === "fab" && new URLSearchParams(location.search).get("falar") === "1") setOpen(true); }, [variant]);
+  useEffect(() => { if (variant !== "big" && new URLSearchParams(location.search).get("falar") === "1") setOpen(true); }, [variant]);
+  useEffect(() => { if (variant === "big") return; const o = () => setOpen(true); addEventListener("sobbra:voz", o); return () => removeEventListener("sobbra:voz", o); }, [variant]);
   useEffect(() => {
     if (!undo) return;
     if (undo.left <= 0) { setUndo(null); return; }
@@ -69,8 +70,8 @@ export function VoiceButton({ variant = "fab" }: { variant?: "fab" | "big" }) {
   };
   const stop = () => { recRef.current?.stop(); setListening(false); };
 
-  const trigger = variant === "big" ? (
-    <button onClick={start} className="btn-primary h-24 flex-1 flex-col text-base"><span className="text-3xl">🎙️</span>Falar</button>
+  const trigger = variant === "none" ? null : variant === "big" ? (
+    <button onClick={start} className="btn-ghost h-14 w-full">Por voz <span aria-hidden>🎙</span></button>
   ) : (
     <button onClick={start} aria-label="Falar com o Sobbra" className="fixed bottom-20 right-4 z-40 grid h-16 w-16 place-items-center rounded-full bg-sobbra text-3xl text-white shadow-xl active:scale-95 md:bottom-6 md:right-6">🎙️</button>
   );
@@ -88,7 +89,7 @@ export function VoiceButton({ variant = "fab" }: { variant?: "fab" | "big" }) {
             <div className="mb-3 max-h-72 space-y-2 overflow-y-auto">
               {turns.length === 0 && <p className="muted text-sm">Experimente: “Lançar gasolina 50”, “paguei 120 no mercado no cartão”, “recebi 1.200 do freela” ou “quanto ainda posso gastar?”.</p>}
               {turns.map((t, i) => (
-                <div key={i} className={`fill-in rounded-2xl px-3 py-2 text-sm ${t.who === "voce" ? "ml-10 bg-floresta text-white" : "soft mr-10"}`}>{t.text}</div>
+                <div key={i} className={`fill-in rounded-2xl px-3 py-2 text-sm ${t.who === "voce" ? "ml-10 bg-forest text-white" : "soft mr-10"}`}>{t.text}</div>
               ))}
               {interim && <div className="ml-10 rounded-2xl bg-floresta/60 px-3 py-2 text-sm italic text-white">{interim}…</div>}
               {busy && <div className="soft mr-10 w-16 animate-pulse rounded-2xl px-3 py-2 text-sm">…</div>}
@@ -100,7 +101,7 @@ export function VoiceButton({ variant = "fab" }: { variant?: "fab" | "big" }) {
             )}
             <div className="flex items-center gap-3">
               {supported ? (
-                <button onClick={listening ? stop : start} className={`grid h-16 w-16 shrink-0 place-items-center rounded-full text-3xl text-white ${listening ? "listening bg-coral" : "bg-sobbra"}`} aria-label={listening ? "Parar" : "Falar"}>
+                <button onClick={listening ? stop : start} className={`grid h-16 w-16 shrink-0 place-items-center rounded-full text-3xl text-white ${listening ? "listening bg-terracotta" : "bg-forest"}`} aria-label={listening ? "Parar" : "Falar"}>
                   {listening ? "■" : "🎙️"}
                 </button>
               ) : null}

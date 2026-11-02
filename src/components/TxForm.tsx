@@ -47,8 +47,8 @@ export function TxForm({ accounts, categories, defaultAccountId, tx, recurring =
     <form ref={formRef} action={action} className="mx-auto max-w-md space-y-4">
       {tx && <input type="hidden" name="id" value={tx.id} />}
       <div className="grid grid-cols-3 gap-1 rounded-xl p-1" style={{ background: "var(--line)" }}>
-        {[["EXPENSE", "Saiu"], ["INCOME", "Entrou"], ["TRANSFER", "Transferir"]].map(([v, l]) => (
-          <button type="button" key={v} onClick={() => { setType(v); setCat(""); setTouchedCat(false); }} className={`min-h-[44px] rounded-lg font-semibold ${type === v ? (v === "INCOME" ? "bg-sobbra text-white" : v === "EXPENSE" ? "bg-coral text-white" : "bg-floresta text-white") : ""}`}>{l}</button>
+        {[["EXPENSE", "Saída"], ["INCOME", "Entrada"], ["TRANSFER", "Transferência"]].map(([v, l]) => (
+          <button type="button" key={v} onClick={() => { setType(v); setCat(""); setTouchedCat(false); }} className={`min-h-[44px] rounded-lg font-semibold ${type === v ? "bg-forest text-white" : ""}`}>{l}</button>
         ))}
       </div>
       <input type="hidden" name="type" value={type} />
@@ -106,8 +106,8 @@ export function TxForm({ accounts, categories, defaultAccountId, tx, recurring =
       )}
       {!more && <input type="hidden" name="status" value="PAID" />}
       {state?.error && <p role="alert" className="rounded-xl bg-coral/10 p-3 text-sm text-coral">{state.error}</p>}
-      <button className="btn-primary h-14 w-full text-lg" disabled={pending}>{pending ? "Salvando…" : tx ? "Salvar alterações" : "Lançar"}</button>
-      {toast && <UndoToast message="Pronto! Lançado." seconds={5} onUndo={() => { deleteTransactions(toast.ids); router.refresh(); }} onClose={() => setToast(null)} />}
+      <button className="btn-primary h-14 w-full text-lg" disabled={pending}>{pending ? "Salvando…" : tx ? "Salvar alterações" : "Salvar movimento"}</button>
+      {toast && <UndoToast message="Movimento salvo." seconds={5} onUndo={() => { deleteTransactions(toast.ids); router.refresh(); }} onClose={() => setToast(null)} />}
     </form>
   );
 }

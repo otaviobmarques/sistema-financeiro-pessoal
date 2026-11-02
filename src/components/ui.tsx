@@ -23,23 +23,28 @@ export function CountUp({ cents, className = "" }: { cents: number; className?: 
   return <span className={`money tabular-nums ${className}`}>{fmt.format(v / 100)}</span>;
 }
 
+/** Valor no formato brasileiro com sinal semantico: "+ R$ 250,00" e "− R$ 80,00" (Design System, p. 6). */
 export function Money({ cents, className = "", sign = false }: { cents: number; className?: string; sign?: boolean }) {
-  return <span className={`money tabular-nums ${className}`}>{sign && cents > 0 ? "+" : ""}{fmt.format(cents / 100)}</span>;
+  const prefix = cents < 0 ? "− " : sign && cents > 0 ? "+ " : "";
+  return <span className={`money tabular-nums whitespace-nowrap ${className}`}>{prefix}{fmt.format(Math.abs(cents) / 100)}</span>;
 }
 
-export function Logo({ size = 32, word = true }: { size?: number; word?: boolean }) {
+/** Simbolo S (duas curvas, centro aberto). Opcional: preferir o wordmark no topo e na entrada. */
+export function SymbolS({ size = 32 }: { size?: number }) {
   return (
-    <span className="inline-flex items-center gap-2">
-      <svg width={size} height={size} viewBox="0 0 64 64" aria-hidden>
-        <defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#1A7A55" /><stop offset="1" stopColor="#0B4F3A" /></linearGradient></defs>
-        <rect width="64" height="64" rx="16" fill="url(#lg)" />
-        <rect x="14" y="34" width="8" height="12" rx="3" fill="#7FB89F" />
-        <rect x="26" y="27" width="8" height="19" rx="3" fill="#B5DCC9" />
-        <rect x="38" y="18" width="8" height="28" rx="3" fill="#fff" />
-        <circle cx="42" cy="11" r="5" fill="#FFB020" stroke="#FFD46B" strokeWidth="1.5" />
-        <rect x="13" y="50" width="34" height="2.5" rx="1.2" fill="#19C37D" />
-      </svg>
-      {word && <span className="font-marca text-xl font-bold tracking-tight">sobbra<span className="text-ambar">.</span></span>}
+    <svg width={size} height={size} viewBox="0 0 64 64" aria-hidden>
+      <rect width="64" height="64" rx="16" fill="#F0D875" />
+      <path d="M43.5 21.5c-2.2-5.3-21.5-6.4-22.3 2.3-.8 8.4 22.6 6.6 22.3 17.1-.3 9.3-19.8 8.6-23.3 2.6" fill="none" stroke="#123E32" strokeWidth="8" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+/** Wordmark: nome em caixa baixa com o ponto amarelo (nao usar o ponto como notificacao). */
+export function Logo({ size = 32, word = true, symbol = false }: { size?: number; word?: boolean; symbol?: boolean }) {
+  return (
+    <span className="inline-flex items-center gap-2" aria-label="sobbra">
+      {(symbol || !word) && <SymbolS size={size} />}
+      {word && <span className="text-[22px] font-bold tracking-tight text-floresta dark:text-[#ECEFE6]" style={{ fontSize: size * 0.72 }}>sobbra<span style={{ color: "#E2C04E" }}>.</span></span>}
     </span>
   );
 }
@@ -50,7 +55,7 @@ export function UndoToast({ message, seconds, onUndo, onClose }: { message: stri
   useEffect(() => { const i = setInterval(() => setLeft((l) => l - 1), 1000); return () => clearInterval(i); }, []);
   useEffect(() => { if (left <= 0) onClose(); }, [left, onClose]);
   return (
-    <div role="status" className="fill-in fixed inset-x-3 bottom-24 z-50 mx-auto flex max-w-md items-center gap-3 rounded-2xl bg-grafite p-3 text-white shadow-xl md:bottom-6">
+    <div role="status" className="fill-in fixed inset-x-3 bottom-28 z-50 mx-auto flex max-w-md items-center gap-3 rounded-2xl bg-grafite p-3 text-white shadow-lg md:bottom-6">
       <span className="flex-1 text-sm">{message}</span>
       {onUndo && <button className="rounded-lg bg-white/15 px-3 py-2 text-sm font-semibold" onClick={() => { onUndo(); onClose(); }}>Desfazer ({left})</button>}
     </div>
@@ -63,7 +68,7 @@ export function Term({ children, tip }: { children: React.ReactNode; tip: string
   return (
     <span className="relative">
       <button type="button" onClick={() => setO(!o)} className="underline decoration-dotted underline-offset-4">{children}</button>
-      {o && <span className="fill-in absolute left-0 top-7 z-20 w-60 rounded-xl bg-grafite p-3 text-xs font-normal text-white shadow-lg">{tip}</span>}
+      {o && <span className="fill-in absolute left-0 top-7 z-20 w-64 rounded-xl bg-grafite p-3 text-xs font-normal normal-case tracking-normal text-white shadow-lg">{tip}</span>}
     </span>
   );
 }

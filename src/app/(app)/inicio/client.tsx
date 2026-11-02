@@ -11,7 +11,7 @@ export function ModeToggle({ simple, hide }: { simple: boolean; hide: boolean })
   return (
     <div className="flex gap-2">
       <button disabled={p} onClick={() => start(() => updatePrefs({ hideValues: !hide }))} className="btn-ghost min-h-[44px] px-3" aria-label={hide ? "Mostrar valores" : "Ocultar valores"}>{hide ? "🙈" : "👁️"}</button>
-      <button disabled={p} onClick={() => start(() => updatePrefs({ simpleMode: !simple }))} className="btn-ghost min-h-[44px] px-3 text-sm">{simple ? "Modo Completo" : "Modo Simples"}</button>
+      <button disabled={p} onClick={() => start(() => updatePrefs({ simpleMode: !simple }))} className="btn-ghost min-h-[44px] px-3 text-sm">{simple ? "Ver painel completo" : "Modo simples"}</button>
     </div>
   );
 }
@@ -37,7 +37,7 @@ export function Customize({ layout, labels }: { layout: Layout; labels: Record<W
   const [l, setL] = useState(layout);
   const [p, start] = useTransition();
   const move = (i: number, d: number) => { const o = [...l.order]; const j = i + d; if (j < 0 || j >= o.length) return; [o[i], o[j]] = [o[j], o[i]]; setL({ ...l, order: o }); };
-  if (!open) return <button className="btn-ghost min-h-[40px] text-sm" onClick={() => setOpen(true)}>⚙️ Personalizar painel</button>;
+  if (!open) return <button className="btn-ghost min-h-[40px] text-sm" onClick={() => setOpen(true)}>Personalizar painel</button>;
   return (
     <div className="card fill-in w-full max-w-md space-y-2">
       <p className="font-semibold">Escolha e ordene os blocos</p>
@@ -65,5 +65,5 @@ export function MonthCelebration({ month, sobra }: { month: string; sobra: numbe
     setShow(true); celebrate();
   }, [month, sobra]);
   if (!show) return null;
-  return <div className="fill-in mb-3 rounded-2xl bg-ambar/15 p-4 text-center">🪙 O mês passado fechou com <b>{(sobra / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</b> de sobra. Mandou bem! <button className="muted ml-2 text-sm underline" onClick={() => setShow(false)}>Fechar</button></div>;
+  return <div className="card fill-in mb-3 text-center">O mês passado fechou com <b>{(sobra / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</b> de resultado positivo. <button className="muted ml-2 text-sm underline" onClick={() => setShow(false)}>Fechar</button></div>;
 }

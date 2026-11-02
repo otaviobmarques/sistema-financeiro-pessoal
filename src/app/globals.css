@@ -2,29 +2,38 @@
 @tailwind components;
 @tailwind utilities;
 
-:root { --bg: #F6FAF8; --card: #FFFFFF; --text: #1F2A2E; --muted: #5B6B70; --line: #E3ECE8; --soft: #D7F5E6; }
-.dark { --bg: #0E1A17; --card: #15241F; --text: #E8F1ED; --muted: #9DB2AA; --line: #233630; --soft: #17352B; }
+:root { --bg: #F5F2E9; --card: #FFFFFF; --text: #1B2822; --muted: #53655B; --line: #E3DED1; --soft: #DFE8D6; --hero: #F0D875; --hero-text: #123E32; --action: #123E32; --danger: #A54632; --focus: #245CCD; }
+/* Tema escuro (requisito do produto): mesmas funcoes, superficies em verde profundo */
+.dark { --bg: #0F1F1A; --card: #16291F; --text: #ECEFE6; --muted: #A9B8AD; --line: #2A3D33; --soft: #20372B; --hero: #E9CF6A; --hero-text: #123E32; --action: #DFE8D6; --danger: #E0846F; --focus: #7FA6F0; }
 html.contrast { --muted: var(--text); --line: var(--text); }
-body { background: var(--bg); color: var(--text); font-feature-settings: "tnum" 1; -webkit-tap-highlight-color: transparent; }
-.card { @apply rounded-2xl p-4 shadow-sm; background: var(--card); border: 1px solid var(--line); }
+body { background: var(--bg); color: var(--text); font-family: Arimo, "Liberation Sans", Arial, sans-serif; font-variant-numeric: tabular-nums; -webkit-tap-highlight-color: transparent; }
+.card { @apply rounded-2xl p-4; background: var(--card); border: 1px solid var(--line); box-shadow: 0 1px 2px rgba(27,40,34,.05); }
+.hero { @apply rounded-2xl p-5; background: var(--hero); color: var(--hero-text); }
+.serif { font-family: Tinos, "Liberation Serif", Georgia, serif; font-weight: 400; }
+h1, .h1 { font-family: Tinos, "Liberation Serif", Georgia, serif; font-weight: 400; letter-spacing: -0.01em; }
+.eyebrow { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
 .muted { color: var(--muted); }
 .line { border-color: var(--line); }
 .soft { background: var(--soft); }
-.btn { @apply inline-flex min-h-[48px] items-center justify-center gap-2 rounded-xl px-4 font-semibold transition active:scale-[0.97] disabled:opacity-50; }
-.btn-primary { @apply btn bg-sobbra text-white hover:brightness-95; }
-.btn-dark { @apply btn bg-floresta text-white hover:brightness-110; }
+.btn { @apply inline-flex min-h-[48px] items-center justify-center gap-2 rounded-xl px-4 font-bold transition-transform duration-[120ms] active:scale-[0.98] disabled:opacity-50; }
+.btn-primary { @apply btn text-white hover:brightness-110; background: #123E32; }
+.dark .btn-primary { background: #DFE8D6; color: #123E32; }
+.btn-dark { @apply btn text-white hover:brightness-110; background: #123E32; }
+.dark .btn-dark { background: #DFE8D6; color: #123E32; }
 .btn-ghost { @apply btn; border: 1px solid var(--line); background: var(--card); }
-.input { @apply min-h-[48px] w-full rounded-xl px-3 outline-none focus:ring-2 focus:ring-sobbra; background: var(--card); border: 1px solid var(--line); color: var(--text); }
+.input { @apply min-h-[52px] w-full rounded-xl px-3 outline-none; } .input:focus { box-shadow: 0 0 0 3px var(--focus); }
+.input { background: var(--card); border: 1px solid var(--line); color: var(--text); }
 .label { @apply mb-1 block text-sm font-medium; }
 .hide-values .money { filter: blur(8px); }
 .skeleton { @apply animate-pulse rounded-xl; background: var(--line); }
 
 /* RF-152: animacao de "scanner" do comprovante */
 @keyframes scan { 0% { top: 0 } 50% { top: calc(100% - 4px) } 100% { top: 0 } }
-.scanner::after { content: ""; position: absolute; left: 0; right: 0; height: 4px; background: #19C37D; box-shadow: 0 0 16px #19C37D; animation: scan 1.6s ease-in-out infinite; }
-@keyframes fillin { from { opacity: 0; transform: translateY(6px) } to { opacity: 1; transform: none } }
-.fill-in { animation: fillin 300ms ease-out both; }
-@keyframes pulse-ring { 0% { box-shadow: 0 0 0 0 rgba(25,195,125,.6) } 100% { box-shadow: 0 0 0 22px rgba(25,195,125,0) } }
+.scanner::after { content: ""; position: absolute; left: 0; right: 0; height: 3px; background: #F0D875; animation: scan 1.6s ease-in-out infinite; }
+@keyframes fillin { from { opacity: 0; transform: translateY(4px) } to { opacity: 1; transform: none } }
+.fill-in { animation: fillin 180ms ease-out both; }
+@keyframes pulse-ring { 0% { box-shadow: 0 0 0 0 rgba(18,62,50,.45) } 100% { box-shadow: 0 0 0 18px rgba(18,62,50,0) } }
 .listening { animation: pulse-ring 1.2s ease-out infinite; }
 
 /* Diretrizes de motion: respeitar reduzir movimento (RNF-13) */
@@ -35,5 +44,5 @@ html.no-motion *, html.no-motion *::before, html.no-motion *::after { animation-
 /* RF-157: barra de orcamento pulsa a partir de 80% */
 @keyframes growx { from { transform: scaleX(0) } }
 .growx { transform-origin: left; animation: growx .9s cubic-bezier(.2,.8,.2,1) both }
-@keyframes softpulse { 50% { filter: brightness(1.2); box-shadow: 0 0 12px currentColor } }
+@keyframes softpulse { 50% { opacity: .75 } }
 .pulse-bar { animation: growx .9s cubic-bezier(.2,.8,.2,1) both, softpulse 1.6s ease-in-out 1s infinite }

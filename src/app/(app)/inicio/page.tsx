@@ -28,73 +28,131 @@ export default async function Inicio({ searchParams }: { searchParams: Promise<{
   const daysSince = (Date.now() - +user.createdAt) / 86400000;
   const showUpsell = user.plan === "FREE" && txCount >= 10 && (!user.lastUpsellAt || Date.now() - +user.lastUpsellAt > 7 * 86400000);
 
+  // Definicoes financeiras transparentes (Design System, p. 10)
+  const goals = await db.goal.findMany({ where: { userId: user.id, achievedAt: null } });
+  const reserva = goals.reduce((s, g) => s + (goalPlan(g).monthly ?? 0), 0); // alocacao futura planejada, nao transferida
+  const guardado = goals.reduce((s, g) => s + g.savedCents, 0);
+  const compromissos = d.pendOut + d.cardsDue;
+  const livre = d.saldoAtual - compromissos - reserva;
+  const fim = d.monthEnd.toLocaleDateString("pt-BR", { day: "numeric", month: "long" });
+  const isCurrent = month === monthKey(new Date());
+  const monthName = (() => { const t = new Date(y, m - 1, 1).toLocaleDateString("pt-BR", { month: "long", year: "numeric" }); return t.charAt(0).toUpperCase() + t.slice(1); })();
+  const [upcoming, recent] = await Promise.all([
+    agendaItems(user.id, new Date(new Date().setHours(0, 0, 0, 0)), new Date(Date.now() + 7 * 86400000)),
+    db.transaction.findMany({ where: { userId: user.id, deletedAt: null, date: { lte: new Date() } }, orderBy: [{ date: "desc" }, { createdAt: "desc" }], take: 5, include: { category: { include: { parent: true } } } }),
+  ]);
+
   const header = (
-    <div className="mb-4 flex items-center justify-between gap-2">
-      <div>
-        <p className="muted text-sm">Olá, {first} 👋</p>
-        <div className="flex items-center gap-1">
-          <Link href={`/inicio?mes=${prev}`} className="muted px-2 text-xl" aria-label="Mês anterior">‹</Link>
-          <h1 className="text-xl font-bold capitalize">{monthLabel(month)}</h1>
-          <Link href={`/inicio?mes=${next}`} className="muted px-2 text-xl" aria-label="Próximo mês">›</Link>
+    <div className="mb-5 space-y-3">
+      <p className="eyebrow">Olá, {first}</p>
+      <h1 className="text-[34px] leading-[1.1] md:text-[44px]">O mês, no <i>seu ritmo.</i></h1>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="line inline-flex items-center rounded-full border" style={{ background: "var(--card)" }}>
+          <Link href={`/inicio?mes=${prev}`} className="grid h-11 w-11 place-items-center" aria-label="Mês anterior">‹</Link>
+          <span className="px-1 text-sm font-bold">{monthName}</span>
+          <Link href={`/inicio?mes=${next}`} className="grid h-11 w-11 place-items-center" aria-label="Próximo mês">›</Link>
         </div>
+        <ModeToggle simple={user.simpleMode} hide={user.hideValues} />
       </div>
-      <ModeToggle simple={user.simpleMode} hide={user.hideValues} />
     </div>
   );
 
   // Estado vazio que ensina o proximo passo (RF-168)
   const empty = txCount === 0 && (
-    <div className="card soft mb-4 text-center">
-      <p className="text-4xl">🪙</p>
-      <p className="mt-2 font-semibold">Vamos lançar seu primeiro gasto?</p>
-      <p className="muted text-sm">Toque em “Falar” e diga, por exemplo: “gastei 30 no mercado”. Ou tire a foto de um comprovante.</p>
+    <div className="card mb-4">
+      <p className="h1 text-2xl">Seu primeiro movimento</p>
+      <p className="muted mt-1 text-sm">Adicione uma entrada ou saída para começar. Toque em <b>Registrar</b> e escolha digitar, falar ou fotografar o comprovante.</p>
     </div>
   );
 
-  // Modo Simples (RF-160): tres numeros e tres botoes grandes
+  // Resumo principal: valor livre no plano com explicacao e composicao (p. 9)
+  const hero = (
+    <section className="hero" aria-labelledby="livre-t">
+      <p id="livre-t" className="text-sm font-bold">{livre >= 0 ? "No seu plano, ainda há" : "Para cobrir seu plano, faltam"}</p>
+      <p className="serif mt-1 text-[40px] leading-tight md:text-[48px]"><Money cents={Math.abs(livre)} /></p>
+      <p className="mt-1 text-sm">{isCurrent ? `Até ${fim}` : `Em ${monthName}`} · Estimativa após contas pendentes{reserva ? " e reserva planejada" : ""}.</p>
+      <details className="group mt-4">
+        <summary className="btn-dark w-full cursor-pointer list-none justify-between [&::-webkit-details-marker]:hidden">Entender meu plano <span aria-hidden className="transition-transform group-open:rotate-90">→</span></summary>
+        <div className="mt-3 rounded-2xl bg-white p-4 text-ink">
+          <p className="eyebrow mb-2">Como o plano é calculado</p>
+          <dl className="space-y-2 text-sm">
+            <div className="flex justify-between"><dt>Saldo do dia a dia</dt><dd><Money cents={d.saldoAtual} className="font-bold" /></dd></div>
+            <div className="flex justify-between"><dt>Contas ainda a pagar{d.cardsDue ? " (inclui faturas)" : ""}</dt><dd><Money cents={-compromissos} className="font-bold" /></dd></div>
+            {reserva > 0 && <div className="flex justify-between"><dt>Reserva planejada para as metas</dt><dd><Money cents={-reserva} className="font-bold" /></dd></div>}
+            <div className="line flex justify-between border-t pt-2"><dt className="font-bold text-floresta">Valor livre no plano</dt><dd><Money cents={livre} className="serif text-xl text-floresta" /></dd></div>
+          </dl>
+          <p className="mt-3 rounded-xl bg-sage p-3 text-xs">{guardado > 0 ? `Os ${brl(guardado)} já guardados nas metas estão separados deste saldo. ` : ""}{reserva > 0 ? `A reserva planejada é uma intenção futura, não um aporte realizado. ` : ""}Recebimentos futuros não entram no cálculo.</p>
+          <p className="muted mt-2 text-xs">Não é saldo bancário nem garantia de sobra. Se faltar um movimento, o valor pode mudar.</p>
+        </div>
+      </details>
+      <div className="mt-4 flex justify-between border-t border-forest/20 pt-3 text-sm"><span>Saldo do dia a dia</span><Money cents={d.saldoAtual} className="font-bold" /></div>
+    </section>
+  );
+
+  const month3 = (
+    <section className="card" aria-labelledby="mes-t">
+      <p id="mes-t" className="eyebrow mb-3">Um olhar para o mês</p>
+      <div className="grid grid-cols-2 gap-3">
+        <div><p className="muted text-sm">Entradas do mês</p><p className="text-xl font-bold"><Money cents={d.income} sign /></p></div>
+        <div><p className="muted text-sm">Saídas do mês</p><p className="text-xl font-bold"><Money cents={-d.expense} /></p></div>
+      </div>
+      <p className="muted mt-3 text-sm">Resultado do mês: <b className="text-ink dark:text-[#ECEFE6]"><Money cents={d.income - d.expense} /></b></p>
+    </section>
+  );
+
+  const nextUp = (
+    <section className="card" aria-labelledby="prox-t">
+      <div className="mb-2 flex items-center justify-between"><p id="prox-t" className="eyebrow">Próximos compromissos</p><Link href="/agenda" className="text-sm font-bold text-floresta underline-offset-4 hover:underline dark:text-[#ECEFE6]">Agenda</Link></div>
+      {!upcoming.length ? <p className="muted text-sm">Nenhum compromisso nos próximos 7 dias.</p> : (
+        <ul>{upcoming.slice(0, 4).map((e) => (
+          <li key={e.id} className="line flex items-center justify-between gap-2 border-t py-2.5 text-sm first:border-0"><span className="min-w-0 truncate"><span className="muted mr-2">{e.date.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })}</span>{e.title}</span>{e.amountCents ? <Money cents={e.kind === "receber" ? e.amountCents : -e.amountCents} sign={e.kind === "receber"} className="font-bold" /> : null}</li>
+        ))}</ul>
+      )}
+    </section>
+  );
+
+  const recentList = (
+    <section className="card" aria-labelledby="rec-t">
+      <div className="mb-2 flex items-center justify-between"><p id="rec-t" className="eyebrow">Movimentos recentes</p><Link href="/lancamentos" className="text-sm font-bold text-floresta underline-offset-4 hover:underline dark:text-[#ECEFE6]">Ver todos</Link></div>
+      {!recent.length ? <p className="muted text-sm">Nenhum movimento ainda.</p> : (
+        <ul>{recent.map((t) => (
+          <li key={t.id} className="line border-t first:border-0"><Link href={`/lancamentos/${t.id}`} className="flex min-h-[52px] items-center gap-3 py-2">
+            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-sage text-lg" aria-hidden>{t.category?.icon ?? (t.type === "TRANSFER" ? "⇄" : "•")}</span>
+            <span className="min-w-0 flex-1"><b className="block truncate text-sm">{t.description}</b><span className="muted text-xs">{t.category ? t.category.name : t.type === "TRANSFER" ? "Transferência" : "Sem categoria"} · {t.date.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })}</span></span>
+            <Money cents={t.type === "INCOME" ? t.amountCents : -t.amountCents} sign={t.type === "INCOME"} className="text-sm font-bold" />
+          </Link></li>
+        ))}</ul>
+      )}
+    </section>
+  );
+
+  // Modo Simples (RF-160): o resumo, o mes e duas acoes; sem esconder compromissos
   if (user.simpleMode) {
     return (
-      <div className="mx-auto max-w-md">
+      <div className="mx-auto max-w-md space-y-4">
         {header}
         {empty}
-        <div className="card mb-3 text-center">
-          <p className="muted"><Term tip="É o que dá para gastar por dia até o próximo dinheiro entrar, já descontando as contas que você agendou.">Quanto ainda posso gastar</Term></p>
-          <p className={`mt-1 text-5xl font-bold ${d.saldoPrevisto < 0 ? "text-coral" : "text-sobbra"}`}><CountUp cents={d.porDia} /></p>
-          <p className="muted mt-1 text-sm">por dia, {d.daysUntilIncome === 1 ? "até amanhã" : `nos próximos ${d.daysUntilIncome} dias`}</p>
-        </div>
-        <div className="mb-6 grid grid-cols-2 gap-3">
-          <div className="card"><p className="muted text-sm">💚 Dinheiro que entrou</p><p className="mt-1 text-xl font-bold"><CountUp cents={d.income} /></p></div>
-          <div className="card"><p className="muted text-sm">❤️ Dinheiro que saiu</p><p className="mt-1 text-xl font-bold text-coral"><CountUp cents={d.expense} /></p></div>
-        </div>
-        <div className="flex gap-3">
+        {hero}
+        {month3}
+        <div className="grid grid-cols-2 gap-3">
+          <Link href="/lancamentos/novo" className="btn-primary h-14">Registrar <span aria-hidden>+</span></Link>
           <VoiceButton variant="big" />
-          <Link href="/lancamentos/novo" className="btn-dark h-24 flex-1 flex-col text-base"><span className="text-3xl">➕</span>Adicionar</Link>
-          <Link href="/comprovantes" className="btn-ghost h-24 flex-1 flex-col text-base"><span className="text-3xl">📷</span>Foto do comprovante</Link>
         </div>
-        {d.sobra > 0 && d.income > 0 && <p className="fill-in mt-6 rounded-2xl bg-ambar/15 p-4 text-center">🪙 Até agora sobraram <Money cents={d.sobra} className="font-bold" /> este mês.</p>}
-        {d.categories[0] && <p className="muted mt-4 text-center text-sm">Onde mais foi dinheiro: {d.categories[0].icon} {d.categories[0].name} (<Money cents={d.categories[0].total} />). <Link className="font-semibold text-sobbra" href="/relatorios">Ver mais</Link></p>}
-        {daysSince > 7 && <p className="muted mt-6 text-center text-xs">Quer ver gráficos e previsões? Toque em “Modo Completo” lá em cima.</p>}
+        {nextUp}
         {showUpsell && <Upsell />}
       </div>
     );
   }
 
   // Painel personalizavel (RF-059): cada bloco e um widget; ordem e visibilidade salvas por usuario
-  const [budget, goals, upcoming] = await Promise.all([budgetStatus(user.id), db.goal.findMany({ where: { userId: user.id, achievedAt: null }, take: 3, orderBy: { createdAt: "asc" } }),
-    agendaItems(user.id, new Date(new Date().setHours(0, 0, 0, 0)), new Date(Date.now() + 7 * 86400000))]);
+  const budget = await budgetStatus(user.id);
+  const goalsTop = goals.slice(0, 3);
   const widgets: Record<WidgetKey, React.ReactNode> = {
     resumo: (
-      <div className="space-y-3">
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="card"><p className="muted text-sm">Receitas</p><p className="text-2xl font-bold text-sobbra"><CountUp cents={d.income} /></p></div>
-          <div className="card"><p className="muted text-sm">Despesas</p><p className="text-2xl font-bold text-coral"><CountUp cents={d.expense} /></p></div>
-          <div className="card"><p className="muted text-sm"><Term tip="Só o que já aconteceu: soma das suas contas hoje (sem cartão de crédito e investimentos).">Saldo atual</Term></p><p className="text-2xl font-bold"><CountUp cents={d.saldoAtual} /></p></div>
-          <div className="card"><p className="muted text-sm"><Term tip="Saldo atual + o que ainda vai entrar − contas e faturas que vencem até o fim do mês.">Saldo previsto</Term></p><p className={`text-2xl font-bold ${d.saldoPrevisto < 0 ? "text-coral" : ""}`}><CountUp cents={d.saldoPrevisto} /></p></div>
-        </div>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <div className="card flex items-center gap-4"><span className="text-3xl">🧮</span><div><p className="muted text-sm">Pode gastar por dia até o próximo dinheiro</p><p className="text-xl font-bold"><Money cents={d.porDia} /></p></div></div>
-          <div className="card flex items-center gap-4"><span className="text-3xl">🔮</span><div><p className="muted text-sm">Projeção de fim de mês pelo seu ritmo</p><p className={`text-xl font-bold ${d.projecao < 0 ? "text-coral" : "text-sobbra"}`}><Money cents={d.projecao} /></p></div></div>
-        </div>
+      <div className="grid gap-4 lg:grid-cols-2">
+        {hero}
+        <div className="space-y-4">{month3}{nextUp}</div>
+        <div className="lg:col-span-2">{recentList}</div>
       </div>
     ),
     categorias: (
@@ -138,21 +196,11 @@ export default async function Inicio({ searchParams }: { searchParams: Promise<{
     metas: (
       <section className="card h-full">
         <div className="mb-3 flex items-center justify-between"><h2 className="font-semibold">Metas</h2><Link href="/orcamentos" className="text-sm text-sobbra">Ver todas ›</Link></div>
-        {!goals.length ? <p className="muted text-sm">Nenhuma meta em andamento. <Link href="/orcamentos" className="text-sobbra">Criar uma meta</Link></p> : (
-          <ul className="space-y-3">{goals.map((g) => { const p = goalPlan(g); return (
+        {!goalsTop.length ? <p className="muted text-sm">Nenhuma meta em andamento. <Link href="/orcamentos" className="text-sobbra">Criar uma meta</Link></p> : (
+          <ul className="space-y-3">{goalsTop.map((g) => { const p = goalPlan(g); return (
             <li key={g.id}><div className="mb-1 flex justify-between text-sm"><span>{g.icon} {g.name}</span><span className="muted">{Math.round(p.pct * 100)}%</span></div>
               <div className="h-2 overflow-hidden rounded-full" style={{ background: "var(--line)" }}><div className="growx h-full rounded-full bg-sobbra" style={{ width: `${p.pct * 100}%` }} /></div>
               <p className="muted mt-1 text-xs">{brl(g.savedCents)} de {brl(g.targetCents)}{p.monthly ? ` · guarde ${brl(p.monthly)}/mês` : ""}</p></li>); })}</ul>
-        )}
-      </section>
-    ),
-    agenda: (
-      <section className="card h-full">
-        <div className="mb-2 flex items-center justify-between"><h2 className="font-semibold">Próximos 7 dias</h2><Link href="/agenda" className="text-sm text-sobbra">Agenda ›</Link></div>
-        {!upcoming.length ? <p className="muted text-sm">Semana livre de contas e compromissos.</p> : (
-          <ul>{upcoming.slice(0, 6).map((e) => (
-            <li key={e.id} className="line flex items-center justify-between gap-2 border-t py-2 text-sm first:border-0"><span className="min-w-0 truncate"><span className="muted mr-2 text-xs">{e.date.toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit" })}</span>{e.title}</span>{e.amountCents ? <Money cents={e.amountCents} className={e.kind === "receber" ? "text-sobbra" : ""} /> : null}</li>
-          ))}</ul>
         )}
       </section>
     ),

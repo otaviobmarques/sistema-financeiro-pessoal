@@ -196,7 +196,7 @@ export async function dashboard(userId: string, month = monthKey(new Date())) {
   for (const t of inMonth) if (t.type === "EXPENSE") weekday[t.date.getDay()] += t.amountCents;
 
   return {
-    month, income, expense, incomeRealized, expenseRealized, saldoAtual, saldoPrevisto, projecao, porDia, daysUntilIncome,
+    month, income, expense, incomeRealized, expenseRealized, saldoAtual, saldoPrevisto, projecao, porDia, daysUntilIncome, pendIn, pendOut, cardsDue, monthEnd: end,
     sobra: income - expense, categories, merchants, monthly, balanceLine, weekday, accounts: balances,
   };
 }
