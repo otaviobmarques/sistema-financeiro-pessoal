@@ -4,6 +4,10 @@
 
 MVP do SaaS de gestão financeira pessoal (web responsivo + PWA), seguindo o Documento de Requisitos v1.5.
 
+## Demonstração
+
+`demo/sobbra-demo.html` é a demonstração completa em um único arquivo (abre no navegador, dados fictícios, sem servidor). Mostra o visual novo com os estilos Vibrante e Sutil, todos os módulos, o backoffice de planos e pagamentos e as telas públicas. Veja `demo/README.md` para reconstruir.
+
 ## Rodar localmente
 
 Requisitos: Node 20+, PostgreSQL 14+.
