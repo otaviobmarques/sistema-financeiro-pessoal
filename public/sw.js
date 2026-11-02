@@ -1,6 +1,6 @@
 // Service worker do Sobbra (RNF-08): app abre offline, consulta o que ja foi visto
 // e guarda lancamentos manuais feitos offline para enviar ao reconectar.
-const CACHE = "sobbra-v2";
+const CACHE = "sobbra-v3";
 const SHELL = ["/inicio", "/lancamentos", "/manifest.webmanifest", "/icons/icon.svg", "/offline.html"];
 
 self.addEventListener("install", (e) => { e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL).catch(() => {}))); self.skipWaiting(); });

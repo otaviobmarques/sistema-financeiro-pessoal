@@ -1,15 +1,26 @@
 import "./globals.css";
 import type { Metadata, Viewport } from "next";
 
+const SITE = process.env.APP_URL || "https://sobbra.com.br";
+const DESC = "Fale o gasto, fotografe o comprovante ou leia a nota fiscal. O Sobbra organiza tudo e mostra quanto ainda está livre no seu mês. Grátis para começar.";
 export const metadata: Metadata = {
-  title: "Sobbra — seu dinheiro, mais espaço para você",
+  metadataBase: new URL(SITE),
+  title: { default: "Sobbra: saiba quanto sobra antes do mês acabar", template: "%s" },
+  description: DESC,
+  applicationName: "Sobbra",
   authors: [{ name: "Domma Tecnologia" }],
   creator: "Domma Tecnologia",
   other: { design: "REDBOX" },
-  description: "Você só tira a foto. O Sobbra anota, organiza e te avisa antes de o dinheiro acabar.",
+  keywords: ["controle financeiro", "finanças pessoais", "orçamento", "app de gastos", "controle de gastos", "planejamento financeiro"],
   manifest: "/manifest.webmanifest",
-  icons: { icon: "/icons/icon.svg", apple: "/icons/icon-192.png" },
-  appleWebApp: { capable: true, title: "Sobbra", statusBarStyle: "default" },
+  icons: {
+    icon: [{ url: "/favicon.ico", sizes: "48x48" }, { url: "/icons/icon.svg", type: "image/svg+xml" }, { url: "/icons/icon-32.png", sizes: "32x32", type: "image/png" }, { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" }],
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180" }],
+  },
+  appleWebApp: { capable: true, title: "Sobbra", statusBarStyle: "black-translucent" },
+  formatDetection: { telephone: false },
+  openGraph: { type: "website", locale: "pt_BR", url: "/", siteName: "Sobbra", title: "Sobbra: saiba quanto sobra antes do mês acabar", description: DESC, images: [{ url: "/og.jpg", width: 1200, height: 630, alt: "Sobbra: saiba quanto sobra antes do mês acabar" }] },
+  twitter: { card: "summary_large_image", title: "Sobbra: saiba quanto sobra antes do mês acabar", description: DESC, images: ["/og.jpg"] },
 };
 export const viewport: Viewport = { themeColor: [{ media: "(prefers-color-scheme: light)", color: "#F5F2E9" }, { media: "(prefers-color-scheme: dark)", color: "#0F1F1A" }], width: "device-width", initialScale: 1 };
 

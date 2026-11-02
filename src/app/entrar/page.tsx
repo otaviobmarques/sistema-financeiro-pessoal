@@ -1,2 +1,5 @@
+import type { Metadata } from "next";
 import { AuthForm } from "../AuthForm";
-export default function Page() { return <AuthForm mode="login" />; }
+import { AuthShell } from "../AuthShell";
+export const metadata: Metadata = { title: "Entrar · Sobbra" };
+export default function Page() { return <AuthShell title={<>Seu mês, <em>sob controle</em>.</>}><AuthForm mode="login" /></AuthShell>; }

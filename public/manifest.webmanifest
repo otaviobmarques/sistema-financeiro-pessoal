@@ -1,28 +1,107 @@
 {
-  "name": "Sobbra — seu dinheiro, mais espaço para você",
+  "name": "Sobbra: saiba quanto sobra antes do mês acabar",
   "short_name": "Sobbra",
-  "description": "Gestão financeira pessoal sem esforço: voz, foto do comprovante e insights.",
-  "start_url": "/inicio",
+  "description": "Registre gastos falando ou por foto e veja quanto ainda está livre no seu mês.",
+  "start_url": "/inicio?origem=app",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#F5F2E9",
-  "theme_color": "#F5F2E9",
+  "background_color": "#062019",
+  "theme_color": "#0B3D2E",
   "lang": "pt-BR",
   "icons": [
-    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
-    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
-    { "src": "/icons/icon.svg", "sizes": "any", "type": "image/svg+xml" }
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/maskable-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
   ],
   "shortcuts": [
-    { "name": "Falar com o Sobbra", "short_name": "Falar", "url": "/inicio?falar=1" },
-    { "name": "Foto do comprovante", "short_name": "Foto", "url": "/comprovantes" },
-    { "name": "Adicionar gasto", "short_name": "Adicionar", "url": "/lancamentos/novo" }
+    {
+      "name": "Falar com o Sobbra",
+      "short_name": "Falar",
+      "url": "/inicio?falar=1",
+      "icons": [
+        {
+          "src": "/icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Foto do comprovante",
+      "short_name": "Foto",
+      "url": "/comprovantes",
+      "icons": [
+        {
+          "src": "/icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Adicionar gasto",
+      "short_name": "Adicionar",
+      "url": "/lancamentos/novo",
+      "icons": [
+        {
+          "src": "/icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
   ],
   "share_target": {
     "action": "/api/share",
     "method": "POST",
     "enctype": "multipart/form-data",
-    "params": { "title": "title", "text": "text", "files": [{ "name": "files", "accept": ["image/*", "application/pdf"] }] }
-  }
+    "params": {
+      "title": "title",
+      "text": "text",
+      "files": [
+        {
+          "name": "files",
+          "accept": [
+            "image/*",
+            "application/pdf"
+          ]
+        }
+      ]
+    }
+  },
+  "id": "/",
+  "display_override": [
+    "standalone",
+    "minimal-ui"
+  ],
+  "orientation": "portrait",
+  "dir": "ltr",
+  "categories": [
+    "finance",
+    "productivity"
+  ]
 }
