@@ -17,6 +17,11 @@ npm test                    # testes do interpretador de voz, valores e faturas
 
 Gere uma `FILE_ENC_KEY` com `openssl rand -hex 32` e um `AUTH_SECRET` com `openssl rand -base64 32`.
 
+## Publicação na Vercel
+- Banco: Neon (PostgreSQL) pela integração da Vercel, que cria a variável `DATABASE_URL`. O build da Vercel (`vercel-build`) roda `prisma db push` e cria as tabelas.
+- Comprovantes: Vercel Blob (`BLOB_READ_WRITE_TOKEN`). Os arquivos são gravados já criptografados com AES-256-GCM.
+- Funções na região `gru1` (São Paulo).
+
 ## Primeiro administrador
 O primeiro acesso ao backoffice vem do `ADMIN_EMAILS` no `.env` (ou do seed). Depois disso, crie os demais administradores pela tela **Backoffice > Usuários**: o papel fica salvo no banco, e o sistema impede ficar sem nenhum administrador ativo.
 
@@ -63,7 +68,7 @@ Trocar de provedor é configuração — tudo passa por `src/lib/ai.ts`.
 
 ### Configuração da Fase 2
 - **Push:** gere as chaves com `npx web-push generate-vapid-keys` e preencha `VAPID_PUBLIC_KEY` e `VAPID_PRIVATE_KEY`. No iPhone, o push só funciona com o Sobbra instalado na tela de início.
-- **Avisos com o app fechado:** defina `CRON_SECRET`; o `vercel.json` já agenda `/api/cron/alerts` a cada hora.
+- **Avisos com o app fechado:** defina `CRON_SECRET`; o `vercel.json` agenda `/api/cron/alerts` uma vez por dia às 8h (limite do plano Hobby da Vercel; no plano Pro dá para usar `0 * * * *`, a cada hora). Com o app aberto, os avisos também são gerados a cada uso.
 - **NFC-e:** sem configuração, o Sobbra consulta o portal público da SEFAZ pela URL do QR Code. Alguns estados exigem captcha; para esses, contrate um provedor de consulta e preencha `NFCE_API_URL`/`NFCE_API_KEY`.
 - **Ainda não incluído na F2:** fatura de cartão em PDF (RF-061, depende da IA de visão ligada) e envio de avisos por e-mail (precisa de um provedor de e-mail).
 
