@@ -39,7 +39,8 @@ const FAQ = [
 
 export default async function Landing({ searchParams }: { searchParams: Promise<{ excluida?: string }> }) {
   const [logged, sp, plans] = await Promise.all([currentUserId(), searchParams, getPlans()]);
-  const list: SitePlan[] = Object.values(plans).filter((p) => p.active).map((p) => ({ code: p.code, name: p.name, description: p.description, price: p.price, yearly: p.yearly, receipts: p.receipts, chat: p.chat, members: p.members }));
+  const list: SitePlan[] = Object.values(plans).filter((p) => p.active).map((p) => ({ code: p.code, name: p.name, description: p.description, price: p.price, yearly: p.yearly, receipts: p.receipts, chat: p.chat, members: p.members, trialDays: p.trialDays, features: p.features }));
+  const featured = Object.values(plans).find((p) => p.featured && p.active)?.code ?? "";
   const cta = logged ? { href: "/inicio", label: "Abrir o app" } : { href: "/cadastro", label: "Criar minha conta grátis" };
   return (
     <div className={`site ${jakarta.variable}`}>
@@ -147,7 +148,7 @@ export default async function Landing({ searchParams }: { searchParams: Promise<
           <div className="s-wrap">
             <p className="s-eyebrow s-center" data-r>Planos</p>
             <h2 className="s-h2 s-center" data-r>Comece grátis. Evolua quando quiser.</h2>
-            <Pricing plans={list} />
+            <Pricing plans={list} featured={featured} />
           </div>
         </section>
 

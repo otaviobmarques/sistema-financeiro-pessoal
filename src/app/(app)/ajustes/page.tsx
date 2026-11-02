@@ -1,18 +1,18 @@
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { getPlans, usage } from "@/lib/plans";
+import { getPlans, planOf, usage } from "@/lib/plans";
 import { brl, dateBR } from "@/lib/money";
 import { aiEnabled, aiProvider } from "@/lib/ai";
 import { logout } from "@/app/actions";
 import { readPrefs } from "@/lib/notify-prefs";
-import { provider as billingProvider } from "@/lib/billing";
+import { getProvider, billingPrefs } from "@/lib/billing";
 import { AlertPrefs } from "./avisos";
 import { Appearance, PlanBox, CategoryForm, RuleDelete, DeleteAccount, ServerPrefs } from "./client";
 
 export default async function Ajustes({ searchParams }: { searchParams: Promise<{ assinatura?: string }> }) {
   const sp = await searchParams;
   const user = await requireUser();
-  const PLANS = await getPlans();
+  const PLANS = await getPlans(); const [gw, prefs] = await Promise.all([getProvider(), billingPrefs()]);
   const [cats, rules, u] = await Promise.all([
     db.category.findMany({ where: { userId: user.id, parentId: null }, include: { children: { orderBy: { name: "asc" } } }, orderBy: [{ kind: "desc" }, { name: "asc" }] }),
     db.rule.findMany({ where: { userId: user.id }, include: { category: { include: { parent: true } } } }),
@@ -28,10 +28,10 @@ export default async function Ajustes({ searchParams }: { searchParams: Promise<
 
       <section id="plano" className="card space-y-3">
         <h2 className="font-semibold">Plano e pagamento</h2>
-        <p>Você está no plano <b>{PLANS[user.plan].name}</b>{user.planRenewsAt && <> · renova em {dateBR(user.planRenewsAt)} (avisamos 3 dias antes)</>}.</p>
+        <p>Você está no plano <b>{planOf(PLANS, user.plan).name}</b>{user.planRenewsAt && <> · renova em {dateBR(user.planRenewsAt)} (avisamos 3 dias antes)</>}.</p>
         <p className="muted text-sm">Este mês: {u.receipts} leituras de comprovante, {u.chat} perguntas ao consultor.</p>
-        <PlanBox plan={user.plan} plans={(["PRO", "FAMILY"] as const).filter((c) => PLANS[c].active).map((c) => ({ code: c, name: PLANS[c].name, description: PLANS[c].description, price: PLANS[c].price, yearly: PLANS[c].yearly }))}
-          gateway={Boolean(billingProvider())} needsCpf={billingProvider()?.needsCpf ?? false} cpf={user.cpfCnpj} renewsAt={user.planRenewsAt?.toISOString() ?? null} canceled={!!user.planCanceledAt && user.plan !== "FREE"} />
+        <PlanBox plan={user.plan} plans={Object.values(PLANS).filter((x) => x.active && x.code !== "FREE" && x.price > 0).map((x) => ({ code: x.code, name: x.name, description: x.description, price: x.price, yearly: x.yearly, trialDays: x.trialDays }))} cycles={prefs.cycles}
+          gateway={Boolean(gw)} needsCpf={gw?.needsCpf ?? false} cpf={user.cpfCnpj} renewsAt={user.planRenewsAt?.toISOString() ?? null} canceled={!!user.planCanceledAt && user.plan !== "FREE"} />
         {sp.assinatura === "ok" && <p className="soft rounded-xl p-3 text-sm">Recebemos seu pedido. Assim que o pagamento for confirmado, o plano é liberado (Pix e cartão costumam ser na hora).</p>}
       </section>
 

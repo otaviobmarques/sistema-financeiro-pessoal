@@ -1,3 +1,4 @@
+import { cfg, loadBillingConfig } from "./config";
 // Aplica eventos do gateway nas assinaturas e no plano do usuario.
 import { db } from "../db";
 import type { BillingUpdate } from "./index";
@@ -18,9 +19,10 @@ export async function applyBillingUpdate(provider: string, u: BillingUpdate) {
   return "ok";
 }
 
-/** Fim do periodo pago apos cancelamento, ou atraso de mais de 5 dias: volta para o Gratis. */
+/** Fim do periodo pago apos cancelamento, ou atraso alem da tolerancia (Backoffice > Pagamentos): volta para o Gratis. */
 export async function expireSubscriptions(userId?: string) {
-  const now = new Date(); const grace = new Date(Date.now() - 5 * 86400000);
+  await loadBillingConfig();
+  const now = new Date(); const grace = new Date(Date.now() - Number(cfg("BILLING_GRACE_DAYS") || 5) * 86400000);
   const r1 = await db.user.updateMany({ where: { ...(userId ? { id: userId } : {}), plan: { not: "FREE" }, planCanceledAt: { not: null }, planRenewsAt: { lt: now } }, data: { plan: "FREE", planRenewsAt: null } });
   const late = await db.subscription.findMany({ where: { ...(userId ? { userId } : {}), status: "past_due", currentPeriodEnd: { lt: grace } }, select: { userId: true } });
   if (late.length) await db.user.updateMany({ where: { id: { in: late.map((l) => l.userId) }, plan: { not: "FREE" } }, data: { plan: "FREE", planRenewsAt: null } });

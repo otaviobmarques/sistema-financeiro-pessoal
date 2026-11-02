@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { currentUserId } from "@/lib/auth";
 import { saveEncrypted, sha256 } from "@/lib/crypto";
 import { processReceipt } from "@/lib/receipts";
-import { canUse, getPlans } from "@/lib/plans";
+import { canUse, getPlans, planOf } from "@/lib/plans";
 
 const OK_TYPES = ["image/jpeg", "image/png", "image/webp", "image/heic", "application/pdf"];
 
@@ -14,7 +14,7 @@ export async function handleUpload(userId: string, files: File[]) {
   for (const f of files) {
     if (!OK_TYPES.includes(f.type)) { results.push({ name: f.name, status: "formato não suportado" }); continue; }
     if (f.size > 10 * 1024 * 1024) { results.push({ name: f.name, status: "arquivo maior que 10 MB" }); continue; }
-    if (!(await canUse(userId, user.plan, "receipts"))) { results.push({ name: f.name, status: `limite de ${PLANS[user.plan].receipts} leituras/mês do plano ${PLANS[user.plan].name}` }); continue; }
+    if (!(await canUse(userId, user.plan, "receipts"))) { results.push({ name: f.name, status: `limite de ${planOf(PLANS, user.plan).receipts} leituras/mês do plano ${planOf(PLANS, user.plan).name}` }); continue; }
     const buf = Buffer.from(await f.arrayBuffer());
     const hash = sha256(buf);
     const dup = await db.receipt.findFirst({ where: { userId, fileHash: hash } });

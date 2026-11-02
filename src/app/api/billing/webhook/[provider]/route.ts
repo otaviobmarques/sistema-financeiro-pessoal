@@ -3,9 +3,11 @@ import { NextResponse } from "next/server";
 import { asaas } from "@/lib/billing/asaas";
 import { stripe } from "@/lib/billing/stripe";
 import { applyBillingUpdate } from "@/lib/billing/apply";
+import { loadBillingConfig } from "@/lib/billing/config";
 
 export async function POST(req: Request, { params }: { params: Promise<{ provider: string }> }) {
   const { provider } = await params;
+  await loadBillingConfig();
   const p = provider === "asaas" ? asaas : provider === "stripe" ? stripe : null;
   if (!p || !p.configured()) return NextResponse.json({ error: "gateway não configurado" }, { status: 404 });
   const body = await req.text();

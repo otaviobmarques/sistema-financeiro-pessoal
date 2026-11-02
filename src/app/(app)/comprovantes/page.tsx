@@ -2,7 +2,7 @@ import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { brl, dateBR } from "@/lib/money";
-import { usage, getPlans } from "@/lib/plans";
+import { usage, getPlans, planOf } from "@/lib/plans";
 import { aiEnabled } from "@/lib/ai";
 import { Uploader } from "./uploader";
 
@@ -17,7 +17,7 @@ export default async function Comprovantes({ searchParams }: { searchParams: Pro
     db.receipt.findMany({ where: { userId: user.id, status: "CONFIRMED" }, include: { transaction: true }, orderBy: { createdAt: "desc" }, take: 20 }),
     usage(user.id),
   ]);
-  const limit = PLANS[user.plan].receipts;
+  const limit = planOf(PLANS, user.plan).receipts;
   return (
     <div className="mx-auto max-w-2xl">
       <h1 className="mb-1 text-xl font-bold">Comprovantes</h1>
@@ -27,7 +27,7 @@ export default async function Comprovantes({ searchParams }: { searchParams: Pro
       {!aiEnabled() && <p className="mb-3 rounded-xl bg-ambar/15 p-3 text-sm">A leitura automática está desligada neste servidor (sem chave de IA). Os comprovantes ficam guardados e você preenche os campos na confirmação.</p>}
       <Uploader />
       <p className="muted mt-2 text-sm">Cupom com QR Code? <a href="/nfce" className="font-semibold text-sobbra">Ler a NFC-e</a> traz cada item da compra.</p>
-      <p className="muted mt-2 text-xs">{u.receipts} de {user.plan === "FREE" ? limit : "∞"} leituras este mês · Plano {PLANS[user.plan].name}</p>
+      <p className="muted mt-2 text-xs">{u.receipts} de {user.plan === "FREE" ? limit : "∞"} leituras este mês · Plano {planOf(PLANS, user.plan).name}</p>
 
       <h2 className="mb-2 mt-6 font-semibold">Caixa de entrada {inbox.length > 0 && <span className="rounded-full bg-sobbra px-2 text-xs text-white">{inbox.length}</span>}</h2>
       {!inbox.length && <p className="card muted text-sm">Nada para revisar. 🎉</p>}

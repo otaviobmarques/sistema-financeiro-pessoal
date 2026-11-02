@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
-import { getPlans, usage } from "@/lib/plans";
+import { getPlans, planOf, usage } from "@/lib/plans";
 import { dateBR } from "@/lib/money";
 import { UserForm, UserActions } from "../form";
 
@@ -18,13 +18,13 @@ export default async function EditarUsuario({ params }: { params: Promise<{ id: 
     <div className="grid gap-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
       <div className="space-y-4">
         <div><h1 className="text-xl font-bold">{u.name}</h1><p className="muted text-sm">{u.role === "ADMIN" ? "Administrador" : "Cliente"} · cadastrado em {dateBR(u.createdAt)} · {u.active ? "ativo" : "bloqueado"}</p></div>
-        <UserForm user={{ id: u.id, name: u.name, email: u.email, phone: u.phone, role: u.role, plan: u.plan }} />
+        <UserForm user={{ id: u.id, name: u.name, email: u.email, phone: u.phone, role: u.role, plan: u.plan }} plans={Object.values(PLANS).map((x) => ({ code: x.code, name: x.name }))} />
       </div>
       <div className="space-y-4">
         <UserActions id={u.id} email={u.email} active={u.active} isSelf={u.id === me.id} />
         <div className="card space-y-2 text-sm">
           <h2 className="font-semibold">Uso</h2>
-          <p>Plano {PLANS[u.plan].name}{u.planRenewsAt && ` · renova em ${dateBR(u.planRenewsAt)}`}</p>
+          <p>Plano {planOf(PLANS, u.plan).name}{u.planRenewsAt && ` · renova em ${dateBR(u.planRenewsAt)}`}</p>
           <p>{u._count.transactions} lançamentos · {u._count.accounts} contas · {u._count.receipts} comprovantes</p>
           <p>Este mês: {use.receipts} leituras de comprovante, {use.chat} perguntas ao consultor</p>
           <p>Último acesso: {u.lastLoginAt ? dateBR(u.lastLoginAt) : "nunca entrou"}</p>

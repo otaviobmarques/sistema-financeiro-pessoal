@@ -30,7 +30,7 @@ export function CountUp({ cents, ms = 1400 }: { cents: number; ms?: number }) {
   return <>{(v / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</>;
 }
 
-export type SitePlan = { code: string; name: string; description: string; price: number; yearly: number | null; receipts: number; chat: number; members: number };
+export type SitePlan = { code: string; name: string; description: string; price: number; yearly: number | null; receipts: number; chat: number; members: number; trialDays?: number; features?: string[] };
 const brl = (c: number) => (c / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 export function Pricing({ plans, featured = "PRO" }: { plans: SitePlan[]; featured?: string }) {
@@ -54,6 +54,7 @@ export function Pricing({ plans, featured = "PRO" }: { plans: SitePlan[]; featur
             p.chat >= 200 ? "Consultor financeiro ampliado*" : `${p.chat} perguntas ao consultor por mês`,
             ...(p.price ? ["Relatórios em PDF e imagem", "Avisos de contas e fatura"] : []),
             ...(p.members > 1 ? [`Até ${p.members} pessoas na mesma conta`] : []),
+            ...(p.features ?? []),
           ];
           const hot = p.code === featured;
           return (
@@ -64,7 +65,7 @@ export function Pricing({ plans, featured = "PRO" }: { plans: SitePlan[]; featur
               <div className="s-price">{v ? <><b>{brl(v)}</b><span>{per}</span></> : <b>Grátis</b>}</div>
               <p className="s-price-note">{v && year && disc > 0 ? `${disc}% mais barato que pagar mês a mês` : v ? "Cancele quando quiser" : "Para sempre, sem cartão"}</p>
               <ul>{feats.map((f) => <li key={f}>{f}</li>)}</ul>
-              <Link className={`s-btn ${hot ? "s-btn-sun" : "s-btn-line"}`} href={`/cadastro?plano=${p.code}`}>{p.price ? `Quero o ${p.name}` : "Começar grátis"}</Link>
+              <Link className={`s-btn ${hot ? "s-btn-sun" : "s-btn-line"}`} href={`/cadastro?plano=${p.code}`}>{p.price ? (p.trialDays ? `Testar ${p.trialDays} dias grátis` : `Quero o ${p.name}`) : "Começar grátis"}</Link>
             </article>
           );
         })}

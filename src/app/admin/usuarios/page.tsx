@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
-import { getPlans } from "@/lib/plans";
+import { getPlans, planOf } from "@/lib/plans";
 import { dateBR } from "@/lib/money";
 
 type SP = { q?: string; papel?: string; plano?: string; status?: string; excluido?: string };
@@ -33,7 +33,7 @@ export default async function Usuarios({ searchParams }: { searchParams: Promise
       <form className="card mb-4 grid gap-2 sm:grid-cols-5">
         <input name="q" defaultValue={sp.q} placeholder="Buscar por nome, e-mail ou telefone" className="input sm:col-span-2" aria-label="Buscar" />
         <select name="papel" defaultValue={sp.papel ?? ""} className="input" aria-label="Papel"><option value="">Todos os papéis</option><option value="CLIENT">Clientes</option><option value="ADMIN">Administradores</option></select>
-        <select name="plano" defaultValue={sp.plano ?? ""} className="input" aria-label="Plano"><option value="">Todos os planos</option>{(["FREE", "PRO", "FAMILY"] as const).map((p) => <option key={p} value={p}>{PLANS[p].name}</option>)}</select>
+        <select name="plano" defaultValue={sp.plano ?? ""} className="input" aria-label="Plano"><option value="">Todos os planos</option>{Object.values(PLANS).map((p) => <option key={p.code} value={p.code}>{p.name}</option>)}</select>
         <div className="flex gap-2"><select name="status" defaultValue={sp.status ?? ""} className="input" aria-label="Situação"><option value="">Todos</option><option value="ativo">Ativos</option><option value="bloqueado">Bloqueados</option></select><button className="btn-dark">Filtrar</button></div>
       </form>
       <div className="card overflow-x-auto p-0">
@@ -44,7 +44,7 @@ export default async function Usuarios({ searchParams }: { searchParams: Promise
               <tr key={u.id} className="line border-b last:border-0">
                 <td className="p-3"><Link href={`/admin/usuarios/${u.id}`} className="font-medium hover:underline">{u.name}</Link><span className="muted block text-xs">{u.email}</span></td>
                 <td><span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${u.role === "ADMIN" ? "bg-floresta text-white" : "soft"}`}>{u.role === "ADMIN" ? "Administrador" : "Cliente"}</span></td>
-                <td>{PLANS[u.plan].name}</td>
+                <td>{planOf(PLANS, u.plan).name}</td>
                 <td>{u.active ? <span className="text-sobbra">● Ativo</span> : <span className="text-coral">● Bloqueado</span>}{u.mustChangePassword && <span className="muted block text-xs">senha provisória</span>}</td>
                 <td>{u.lastLoginAt ? dateBR(u.lastLoginAt) : <span className="muted">nunca</span>}</td>
                 <td>{u._count.transactions}</td>

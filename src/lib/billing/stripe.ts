@@ -1,9 +1,10 @@
 // Stripe (cartao, recorrencia). Usa a API REST diretamente; webhook com verificacao de assinatura.
 import { createHmac, timingSafeEqual } from "node:crypto";
 import type { Provider } from "./index";
+import { cfg } from "./config";
 
 async function call(path: string, params?: Record<string, string>, method = "POST") {
-  const r = await fetch("https://api.stripe.com/v1" + path, { method, headers: { authorization: `Bearer ${process.env.STRIPE_SECRET_KEY}`, "content-type": "application/x-www-form-urlencoded" }, body: params ? new URLSearchParams(params) : undefined });
+  const r = await fetch("https://api.stripe.com/v1" + path, { method, headers: { authorization: `Bearer ${cfg("STRIPE_SECRET_KEY")}`, "content-type": "application/x-www-form-urlencoded" }, body: params ? new URLSearchParams(params) : undefined });
   const j = await r.json();
   if (!r.ok) throw new Error(`Stripe ${r.status}: ${j?.error?.message ?? ""}`);
   return j;
@@ -22,7 +23,7 @@ export function verifyStripeSignature(body: string, header: string | null, secre
 export const stripe: Provider = {
   id: "stripe", label: "Stripe (cartão)", needsCpf: false,
   envVars: ["STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET"],
-  configured: () => Boolean(process.env.STRIPE_SECRET_KEY && process.env.STRIPE_WEBHOOK_SECRET),
+  configured: () => Boolean(cfg("STRIPE_SECRET_KEY") && cfg("STRIPE_WEBHOOK_SECRET")),
   async createCheckout(i) {
     const ref = `${i.userId}:${i.plan}:${i.cycle}`;
     const s = await call("/checkout/sessions", {
@@ -30,12 +31,14 @@ export const stripe: Provider = {
       "line_items[0][quantity]": "1", "line_items[0][price_data][currency]": "brl", "line_items[0][price_data][unit_amount]": String(i.priceCents),
       "line_items[0][price_data][recurring][interval]": i.cycle === "yearly" ? "year" : "month", "line_items[0][price_data][product_data][name]": `Sobbra ${i.planName}`,
       "subscription_data[metadata][ref]": ref,
+      ...(i.trialDays ? { "subscription_data[trial_period_days]": String(i.trialDays) } : {}),
     });
     return { url: s.url, externalId: null, customerId: null };
   },
+  async test() { await call("/balance", undefined, "GET"); return `Stripe conectado (${cfg("STRIPE_SECRET_KEY").startsWith("sk_live_") ? "produção" : "teste"}).`; },
   async cancel(id) { await call(`/subscriptions/${id}`, undefined, "DELETE"); },
   async parseWebhook(req, body) {
-    if (!verifyStripeSignature(body, req.headers.get("stripe-signature"), process.env.STRIPE_WEBHOOK_SECRET ?? "")) return null;
+    if (!verifyStripeSignature(body, req.headers.get("stripe-signature"), cfg("STRIPE_WEBHOOK_SECRET") ?? "")) return null;
     const e = JSON.parse(body); const o = e.data?.object ?? {};
     const ref = String(o.client_reference_id ?? o.metadata?.ref ?? o.subscription_details?.metadata?.ref ?? o.parent?.subscription_details?.metadata?.ref ?? "");
     const map: Record<string, "active" | "past_due" | "canceled"> = { "checkout.session.completed": "active", "invoice.paid": "active", "invoice.payment_failed": "past_due", "customer.subscription.deleted": "canceled" };

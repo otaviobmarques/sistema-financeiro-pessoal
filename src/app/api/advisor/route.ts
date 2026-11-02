@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { currentUserId } from "@/lib/auth";
 import { answer } from "@/lib/advisor";
-import { canUse, getPlans } from "@/lib/plans";
+import { canUse, getPlans, planOf } from "@/lib/plans";
 
 export async function POST(req: Request) {
   const userId = await currentUserId();
@@ -12,7 +12,7 @@ export async function POST(req: Request) {
   const user = await db.user.findUniqueOrThrow({ where: { id: userId } });
   const PLANS = await getPlans();
   if (!(await canUse(userId, user.plan, "chat"))) {
-    return NextResponse.json({ answer: { text: `Você usou as ${PLANS[user.plan].chat} perguntas do mês no plano ${PLANS[user.plan].name}. Elas voltam no dia 1º, ou você pode ampliar no plano Pro.`, facts: [] } });
+    return NextResponse.json({ answer: { text: `Você usou as ${planOf(PLANS, user.plan).chat} perguntas do mês no plano ${planOf(PLANS, user.plan).name}. Elas voltam no dia 1º, ou você pode ampliar no plano Pro.`, facts: [] } });
   }
   const a = await answer(userId, question);
   await db.chatMessage.createMany({ data: [{ userId, role: "user", content: question }, { userId, role: "assistant", content: a.text, data: a as any }] });

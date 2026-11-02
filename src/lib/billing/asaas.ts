@@ -1,24 +1,26 @@
 // Asaas (Pix, boleto e cartao). Docs: https://docs.asaas.com — teste primeiro com ASAAS_ENV=sandbox.
 import type { Provider } from "./index";
+import { cfg } from "./config";
 
-const base = () => (process.env.ASAAS_ENV === "production" ? "https://api.asaas.com/v3" : "https://api-sandbox.asaas.com/v3");
+const base = () => (cfg("ASAAS_ENV") === "production" ? "https://api.asaas.com/v3" : "https://api-sandbox.asaas.com/v3");
 async function call(path: string, init: RequestInit = {}) {
-  const r = await fetch(base() + path, { ...init, headers: { "content-type": "application/json", access_token: process.env.ASAAS_API_KEY ?? "", "user-agent": "Sobbra", ...(init.headers ?? {}) } });
+  const r = await fetch(base() + path, { ...init, headers: { "content-type": "application/json", access_token: cfg("ASAAS_API_KEY") ?? "", "user-agent": "Sobbra", ...(init.headers ?? {}) } });
   const j = await r.json().catch(() => ({}));
   if (!r.ok) throw new Error(`Asaas ${r.status}: ${j?.errors?.[0]?.description ?? JSON.stringify(j).slice(0, 200)}`);
   return j;
 }
-const today = () => new Date(Date.now() - 3 * 3600_000).toISOString().slice(0, 10); // data de Brasilia
+const today = (plusDays = 0) => new Date(Date.now() - 3 * 3600_000 + plusDays * 86400_000).toISOString().slice(0, 10); // data de Brasilia
+const BT: Record<string, string> = { pix: "PIX", boleto: "BOLETO", card: "CREDIT_CARD" };
 
 export const asaas: Provider = {
   id: "asaas", label: "Asaas (Pix, boleto e cartão)", needsCpf: true,
   envVars: ["ASAAS_API_KEY", "ASAAS_WEBHOOK_TOKEN", "ASAAS_ENV (sandbox ou production)"],
-  configured: () => Boolean(process.env.ASAAS_API_KEY && process.env.ASAAS_WEBHOOK_TOKEN),
+  configured: () => Boolean(cfg("ASAAS_API_KEY") && cfg("ASAAS_WEBHOOK_TOKEN")),
   async createCheckout(i) {
     if (!i.cpfCnpj) throw new Error("CPF obrigatório para emitir a cobrança");
     const customer = await call("/customers", { method: "POST", body: JSON.stringify({ name: i.name, email: i.email, cpfCnpj: i.cpfCnpj, externalReference: i.userId, notificationDisabled: false }) });
     const sub = await call("/subscriptions", { method: "POST", body: JSON.stringify({
-      customer: customer.id, billingType: "UNDEFINED", value: i.priceCents / 100, nextDueDate: today(), cycle: i.cycle === "yearly" ? "YEARLY" : "MONTHLY",
+      customer: customer.id, billingType: (i.methods?.length === 1 && BT[i.methods[0]]) || "UNDEFINED", value: i.priceCents / 100, nextDueDate: today(i.trialDays ?? 0), cycle: i.cycle === "yearly" ? "YEARLY" : "MONTHLY",
       description: `Sobbra ${i.planName} (${i.cycle === "yearly" ? "anual" : "mensal"})`, externalReference: `${i.userId}:${i.plan}:${i.cycle}`,
       callback: { successUrl: i.successUrl, autoRedirect: true } }) });
     const pays = await call(`/subscriptions/${sub.id}/payments`);
@@ -26,9 +28,10 @@ export const asaas: Provider = {
     if (!url) throw new Error("Asaas não retornou o link de pagamento");
     return { url, externalId: sub.id, customerId: customer.id };
   },
+  async test() { const a = await call("/myAccount"); return `Conta ${a?.name ?? a?.email ?? "Asaas"} conectada (${cfg("ASAAS_ENV") === "production" ? "produção" : "teste"}).`; },
   async cancel(id) { await call(`/subscriptions/${id}`, { method: "DELETE" }); },
   async parseWebhook(req, body) {
-    if (req.headers.get("asaas-access-token") !== process.env.ASAAS_WEBHOOK_TOKEN) return null;
+    if (req.headers.get("asaas-access-token") !== cfg("ASAAS_WEBHOOK_TOKEN")) return null;
     const j = JSON.parse(body); const p = j.payment ?? {}; const s = j.subscription ?? {};
     const ref = String(p.externalReference ?? s.externalReference ?? "");
     const map: Record<string, "active" | "past_due" | "canceled"> = { PAYMENT_CONFIRMED: "active", PAYMENT_RECEIVED: "active", PAYMENT_OVERDUE: "past_due", SUBSCRIPTION_DELETED: "canceled", SUBSCRIPTION_INACTIVATED: "canceled", PAYMENT_REFUNDED: "canceled" };

@@ -270,7 +270,7 @@ export async function updatePrefs(data: { simpleMode?: boolean; hideValues?: boo
 }
 
 /** Troca manual de plano: so para administradores (cortesias e testes). Clientes assinam pelo gateway. */
-export async function changePlan(plan: "FREE" | "PRO" | "FAMILY") {
+export async function changePlan(plan: string) {
   const user = await requireUser();
   if (!isAdmin(user)) return;
   // Integracao com gateway (Asaas/Pagar.me/Stripe) entra aqui. No MVP, troca direta para testes.

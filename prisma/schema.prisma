@@ -10,11 +10,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum Plan {
-  FREE
-  PRO
-  FAMILY
-}
 
 // Papel de acesso: Cliente usa o app; Administrador acessa o backoffice
 enum Role {
@@ -70,7 +65,7 @@ model User {
   phone           String?
   mustChangePassword Boolean @default(false) // senha provisoria criada pelo admin
   lastLoginAt     DateTime?
-  plan            Plan      @default(FREE)
+  plan            String    @default("FREE") // codigo do plano (PlanConfig.code)
   planRenewsAt    DateTime?
   planCanceledAt  DateTime?
   monthlyIncome   Int?      // centavos, informado no onboarding
@@ -426,7 +421,7 @@ model AppSecret {
 // ---------- Cobranca do SaaS ----------
 // Planos editaveis pelo backoffice (precos e limites)
 model PlanConfig {
-  code              Plan     @id
+  code              String   @id
   name              String
   description       String   @default("")
   priceMonthlyCents Int
@@ -435,6 +430,10 @@ model PlanConfig {
   chatLimit         Int      // perguntas ao consultor por mes
   members           Int      @default(1)
   active            Boolean  @default(true)
+  trialDays         Int      @default(0)
+  featured          Boolean  @default(false) // destaque "Mais escolhido" no site
+  features          String[] @default([])    // itens extras exibidos no site
+  sortOrder         Int      @default(0)
   updatedAt         DateTime @updatedAt
 }
 
@@ -445,7 +444,7 @@ model Subscription {
   provider           String    // "asaas" | "stripe"
   externalId         String?   @unique
   externalCustomerId String?
-  plan               Plan
+  plan               String
   cycle              String    // "monthly" | "yearly"
   priceCents         Int
   status             String    @default("pending") // pending | active | past_due | canceled
@@ -468,4 +467,20 @@ model BillingEvent {
   createdAt  DateTime @default(now())
 
   @@unique([provider, eventId])
+}
+
+// Gateway de pagamento configurado pelo Backoffice. As chaves ficam criptografadas (AES-256-GCM).
+// Variaveis de ambiente continuam valendo quando nao houver configuracao aqui.
+model PaymentConfig {
+  id         String    @id @default("default")
+  provider   String?   // "asaas" | "stripe"
+  env        String    @default("sandbox") // "sandbox" | "production"
+  secretsEnc String?   // JSON criptografado com as chaves do provedor
+  methods    String[]  @default(["pix", "boleto", "card"])
+  cycles     String    @default("both") // "both" | "monthly" | "yearly"
+  graceDays  Int       @default(5)
+  testedAt   DateTime?
+  testOk     Boolean?
+  testMsg    String?
+  updatedAt  DateTime  @updatedAt
 }

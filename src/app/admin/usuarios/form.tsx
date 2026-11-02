@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createUser, updateUser, setUserActive, resetPassword, deleteUser, type AdminState } from "../actions";
 
-type U = { id: string; name: string; email: string; phone: string | null; role: "CLIENT" | "ADMIN"; plan: "FREE" | "PRO" | "FAMILY" };
+type U = { id: string; name: string; email: string; phone: string | null; role: "CLIENT" | "ADMIN"; plan: string };
 
 function TempPassword({ value, email }: { value: string; email: string }) {
   const [copied, setCopied] = useState(false);
@@ -20,7 +20,7 @@ function TempPassword({ value, email }: { value: string; email: string }) {
   );
 }
 
-export function UserForm({ user }: { user?: U }) {
+export function UserForm({ user, plans = [{ code: "FREE", name: "Grátis" }, { code: "PRO", name: "Pro" }, { code: "FAMILY", name: "Família" }] }: { user?: U; plans?: { code: string; name: string }[] }) {
   const [state, action, pending] = useActionState<AdminState, FormData>(user ? updateUser : createUser, undefined);
   const [role, setRole] = useState(user?.role ?? "CLIENT");
   const [manual, setManual] = useState(false);
@@ -49,7 +49,7 @@ export function UserForm({ user }: { user?: U }) {
         <div><label className="label" htmlFor="name">Nome completo</label><input id="name" name="name" required defaultValue={user?.name} className="input" /></div>
         <div><label className="label" htmlFor="email">E-mail (login)</label><input id="email" name="email" type="email" required defaultValue={user?.email} className="input" /></div>
         <div><label className="label" htmlFor="phone">Telefone (opcional)</label><input id="phone" name="phone" type="tel" defaultValue={user?.phone ?? ""} className="input" placeholder="(11) 99999-0000" /></div>
-        <div><label className="label" htmlFor="plan">Plano</label><select id="plan" name="plan" defaultValue={user?.plan ?? "FREE"} className="input"><option value="FREE">Grátis</option><option value="PRO">Pro</option><option value="FAMILY">Família</option></select></div>
+        <div><label className="label" htmlFor="plan">Plano</label><select id="plan" name="plan" defaultValue={user?.plan ?? "FREE"} className="input">{plans.map((x) => <option key={x.code} value={x.code}>{x.name}</option>)}</select></div>
       </div>
       {!user && (
         <div className="space-y-2">

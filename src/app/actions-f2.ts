@@ -6,7 +6,7 @@ import { requireUser } from "@/lib/auth";
 import { parseMoney } from "@/lib/money";
 import { budgetStatus } from "@/lib/budgets";
 import type { FormState } from "./actions";
-import { provider as billingProvider, appUrl, type Cycle } from "@/lib/billing";
+import { getProvider, billingPrefs, appUrl, type Cycle } from "@/lib/billing";
 import { getPlans } from "@/lib/plans";
 
 import { readLayout } from "@/lib/dashboard-layout";
@@ -358,12 +358,13 @@ function validCpf(c: string) {
   return dv(9) === Number(c[9]) && dv(10) === Number(c[10]);
 }
 
-export async function startCheckout(plan: "PRO" | "FAMILY", cycle: Cycle, cpf?: string): Promise<{ error?: string; url?: string }> {
+export async function startCheckout(plan: string, cycle: Cycle, cpf?: string): Promise<{ error?: string; url?: string }> {
   const user = await requireUser();
-  const p = billingProvider();
+  const p = await getProvider();
   if (!p) return { error: "O pagamento online ainda não está disponível." };
-  const plans = await getPlans(); const info = plans[plan];
-  if (!info?.active) return { error: "Este plano não está disponível." };
+  const plans = await getPlans(); const info = plans[plan]; const prefs = await billingPrefs();
+  if (!info?.active || !info.price || plan === "FREE") return { error: "Este plano não está disponível." };
+  if ((prefs.cycles === "monthly" && cycle === "yearly") || (prefs.cycles === "yearly" && cycle === "monthly")) return { error: "Esse ciclo de cobrança não está disponível." };
   const price = cycle === "yearly" ? info.yearly : info.price;
   if (!price) return { error: "Este plano não tem cobrança anual." };
   let cpfCnpj = user.cpfCnpj;
@@ -374,7 +375,7 @@ export async function startCheckout(plan: "PRO" | "FAMILY", cycle: Cycle, cpf?: 
   }
   const sub = await db.subscription.create({ data: { userId: user.id, provider: p.id, plan, cycle, priceCents: price } });
   try {
-    const r = await p.createCheckout({ userId: user.id, name: user.name, email: user.email, cpfCnpj, plan, planName: info.name, cycle, priceCents: price,
+    const r = await p.createCheckout({ userId: user.id, name: user.name, email: user.email, cpfCnpj, plan, planName: info.name, cycle, priceCents: price, trialDays: info.trialDays, methods: prefs.methods,
       successUrl: `${appUrl()}/ajustes?assinatura=ok#plano`, cancelUrl: `${appUrl()}/ajustes#plano`, webhookUrl: `${appUrl()}/api/billing/webhook/${p.id}` });
     await db.subscription.update({ where: { id: sub.id }, data: { checkoutUrl: r.url, externalId: r.externalId, externalCustomerId: r.customerId } });
     return { url: r.url };
@@ -390,7 +391,7 @@ export async function cancelSubscription(): Promise<{ error?: string; until?: st
   const user = await requireUser();
   const sub = await db.subscription.findFirst({ where: { userId: user.id, status: { in: ["active", "past_due", "pending"] } }, orderBy: { createdAt: "desc" } });
   if (sub?.externalId) {
-    const p = billingProvider();
+    const p = await getProvider();
     try { await p?.cancel(sub.externalId); }
     catch (e: any) { if (!/ 404/.test(String(e?.message))) { console.error("cancel", e); return { error: "Não consegui cancelar no gateway agora. Tente de novo; se persistir, fale com o suporte." }; } } // 404: ja nao existe no gateway
   }

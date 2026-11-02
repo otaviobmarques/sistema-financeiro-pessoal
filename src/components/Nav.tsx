@@ -16,7 +16,7 @@ const I = {
   plan: <><rect x="5" y="4" width="14" height="17" rx="2" /><path d="M9 4h6v3H9zM9 12h6M9 16h4" /></>,
   more: <path d="M5 12h.01M12 12h.01M19 12h.01" />,
 };
-const ADMIN = [{ href: "/admin", label: "Visão geral" }, { href: "/admin/usuarios", label: "Cadastro de usuários" }, { href: "/admin/planos", label: "Planos e cobrança" }, { href: "/admin/auditoria", label: "Auditoria" }, { href: "/", label: "Página de vendas" }];
+const ADMIN = [{ href: "/admin", label: "Visão geral" }, { href: "/admin/usuarios", label: "Cadastro de usuários" }, { href: "/admin/planos", label: "Planos e preços" }, { href: "/admin/pagamentos", label: "Pagamentos" }, { href: "/admin/auditoria", label: "Auditoria" }, { href: "/", label: "Página de vendas" }];
 const Icon = ({ d }: { d: React.ReactNode }) => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>{d}</svg>;
 
 const PLAN = ["/plano", "/recorrentes", "/agenda", "/orcamentos", "/dividas", "/contas-a-pagar"];

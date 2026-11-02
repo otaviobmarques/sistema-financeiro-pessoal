@@ -44,13 +44,13 @@ export function ServerPrefs({ simple, hide, reminder }: { simple: boolean; hide:
   );
 }
 
-type PlanOpt = { code: "PRO" | "FAMILY"; name: string; description: string; price: number; yearly: number | null };
+type PlanOpt = { code: string; name: string; description: string; price: number; yearly: number | null; trialDays: number };
 const brlc = (c: number) => (c / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 /** Assinar pelo gateway e cancelar em 2 toques, sem retencao forcada (RF-145). */
-export function PlanBox({ plan, plans, gateway, needsCpf, cpf, renewsAt, canceled }: { plan: string; plans: PlanOpt[]; gateway: boolean; needsCpf: boolean; cpf: string | null; renewsAt: string | null; canceled: boolean }) {
+export function PlanBox({ plan, plans, gateway, needsCpf, cpf, renewsAt, canceled, cycles = "both" }: { plan: string; plans: PlanOpt[]; gateway: boolean; needsCpf: boolean; cpf: string | null; renewsAt: string | null; canceled: boolean; cycles?: "both" | "monthly" | "yearly" }) {
   const [confirming, setConfirming] = useState(false);
-  const [cycle, setCycle] = useState<"monthly" | "yearly">("monthly");
+  const [cycle, setCycle] = useState<"monthly" | "yearly">(cycles === "yearly" ? "yearly" : "monthly");
   const [choice, setChoice] = useState<PlanOpt | null>(null);
   const [doc, setDoc] = useState(cpf ?? "");
   const [msg, setMsg] = useState<string>();
@@ -65,14 +65,14 @@ export function PlanBox({ plan, plans, gateway, needsCpf, cpf, renewsAt, cancele
     ) : <div className="space-y-2"><button className="btn-ghost w-full" onClick={() => setConfirming(true)}>Cancelar assinatura</button>{msg && <p className="text-sm text-coral">{msg}</p>}</div>;
   }
   if (!gateway) return <p className="soft rounded-xl p-3 text-sm">A assinatura pelo app chega em breve. Enquanto isso, o plano Grátis tem tudo para você começar.</p>;
-  const hasYearly = plans.some((x) => x.yearly);
+  const hasYearly = cycles === "both" && plans.some((x) => x.yearly);
   return (
     <div className="space-y-3">
       {hasYearly && <div className="inline-flex rounded-xl p-1" style={{ background: "var(--line)" }}>{(["monthly", "yearly"] as const).map((c) => <button key={c} className={`min-h-[40px] rounded-lg px-4 text-sm font-semibold ${cycle === c ? "bg-sobbra text-white" : ""}`} onClick={() => setCycle(c)}>{c === "monthly" ? "Mensal" : "Anual"}</button>)}</div>}
       <div className="grid gap-2 sm:grid-cols-2">{plans.map((x) => { const price = cycle === "yearly" ? x.yearly : x.price; if (!price) return null; return (
         <button key={x.code} className={`card text-left ${choice?.code === x.code ? "ring-2 ring-sobbra" : ""}`} onClick={() => { setChoice(x); setMsg(undefined); }}>
           <b>{x.name}</b> · {brlc(price)}/{cycle === "yearly" ? "ano" : "mês"}{cycle === "yearly" && x.yearly ? <span className="ml-1 text-xs text-sobbra">economize {Math.round((1 - x.yearly / (x.price * 12)) * 100)}%</span> : null}
-          <span className="muted block text-sm">{x.description}</span></button>); })}</div>
+          <span className="muted block text-sm">{x.description}</span>{x.trialDays > 0 && <span className="mt-1 block text-xs font-bold text-sobbra">{x.trialDays} dias grátis para testar</span>}</button>); })}</div>
       {choice && (
         <div className="flex flex-wrap items-end gap-2">
           {needsCpf && <div><label className="label" htmlFor="cpf">CPF (para emitir a cobrança)</label><input id="cpf" className="input" inputMode="numeric" value={doc} onChange={(e) => setDoc(e.target.value)} placeholder="000.000.000-00" /></div>}
