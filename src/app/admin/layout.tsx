@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
 import { Logo } from "@/components/ui";
 import { AdminNav } from "./nav";
+import { Credits } from "@/components/Credits";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const me = await requireAdmin();
@@ -17,6 +18,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         </div>
       </header>
       <main className="mx-auto max-w-6xl px-4 py-6">{children}</main>
+      <footer className="line mx-auto max-w-6xl border-t px-4 py-6"><Credits /></footer>
     </div>
   );
 }

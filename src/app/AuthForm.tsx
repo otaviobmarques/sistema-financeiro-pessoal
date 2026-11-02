@@ -3,6 +3,7 @@ import { useActionState } from "react";
 import Link from "next/link";
 import { login, signup } from "./actions";
 import { Logo } from "@/components/ui";
+import { Credits } from "@/components/Credits";
 
 export function AuthForm({ mode }: { mode: "login" | "signup" }) {
   const [state, action, pending] = useActionState(mode === "login" ? login : signup, undefined);
@@ -20,6 +21,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
       <p className="muted mt-6 text-center text-sm">
         {mode === "login" ? <>Ainda não tem conta? <Link className="font-semibold text-sobbra" href="/cadastro">Criar grátis</Link></> : <>Já tem conta? <Link className="font-semibold text-sobbra" href="/entrar">Entrar</Link></>}
       </p>
+      <div className="mt-10"><Credits /></div>
       {mode === "signup" && <p className="muted mt-4 text-center text-xs">Ao criar a conta você concorda com os Termos de Uso e a Política de Privacidade. Seus dados nunca são usados para treinar IA de terceiros.</p>}
     </main>
   );

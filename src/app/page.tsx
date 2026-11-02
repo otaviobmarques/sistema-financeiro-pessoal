@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { currentUserId } from "@/lib/auth";
 import { Logo } from "@/components/ui";
+import { Credits } from "@/components/Credits";
 import { getPlans } from "@/lib/plans";
 import { brl } from "@/lib/money";
 
@@ -63,6 +64,7 @@ export default async function Landing({ searchParams }: { searchParams: Promise<
         </div>
         <p className="muted mt-2 text-xs">* Com política de uso justo.{PLANS.PRO.yearly ? ` Pro anual: ${brl(PLANS.PRO.yearly)}.` : ""} Cancele quando quiser, em 2 toques.</p>
       </section>
+      <footer className="line mt-6 border-t pt-6"><Credits /><p className="muted mt-3 text-center text-xs">© {new Date().getFullYear()} Sobbra. Seu dinheiro. Mais espaço para você.</p></footer>
     </main>
   );
 }

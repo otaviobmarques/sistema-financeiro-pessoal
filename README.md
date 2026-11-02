@@ -1,4 +1,6 @@
-# Sobbra — faça o seu dinheiro sobrar
+# Sobbra — seu dinheiro, mais espaço para você
+
+**Sistema desenvolvido pela Domma Tecnologia · Design pela agência REDBOX**
 
 MVP do SaaS de gestão financeira pessoal (web responsivo + PWA), seguindo o Documento de Requisitos v1.5.
 

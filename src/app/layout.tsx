@@ -2,7 +2,10 @@ import "./globals.css";
 import type { Metadata, Viewport } from "next";
 
 export const metadata: Metadata = {
-  title: "Sobbra — faça o seu dinheiro sobrar",
+  title: "Sobbra — seu dinheiro, mais espaço para você",
+  authors: [{ name: "Domma Tecnologia" }],
+  creator: "Domma Tecnologia",
+  other: { design: "REDBOX" },
   description: "Você só tira a foto. O Sobbra anota, organiza e te avisa antes de o dinheiro acabar.",
   manifest: "/manifest.webmanifest",
   icons: { icon: "/icons/icon.svg", apple: "/icons/icon-192.png" },

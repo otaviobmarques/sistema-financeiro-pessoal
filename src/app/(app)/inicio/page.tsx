@@ -149,7 +149,7 @@ export default async function Inicio({ searchParams }: { searchParams: Promise<{
   const goalsTop = goals.slice(0, 3);
   const widgets: Record<WidgetKey, React.ReactNode> = {
     resumo: (
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid items-start gap-4 lg:grid-cols-2">
         {hero}
         <div className="space-y-4">{month3}{nextUp}</div>
         <div className="lg:col-span-2">{recentList}</div>

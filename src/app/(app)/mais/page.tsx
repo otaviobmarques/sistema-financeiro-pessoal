@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { requireUser, isAdmin } from "@/lib/auth";
+import { Credits } from "@/components/Credits";
 
 /** Mais: onde ajusto ou aprofundo (Design System, p. 8). */
 export default async function Mais() {
@@ -20,6 +21,7 @@ export default async function Mais() {
           ))}</ul>
         </section>
       ))}
+      <section className="card" aria-label="Créditos"><p className="eyebrow mb-3">Créditos</p><Credits /></section>
     </div>
   );
 }
