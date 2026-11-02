@@ -3,6 +3,7 @@ import { useActionState, useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { deleteAccount, deleteRule, saveCategory, updatePrefs } from "@/app/actions";
 import { startCheckout, cancelSubscription } from "@/app/actions-f2";
+import { SkinSwitch } from "@/components/SkinSwitch";
 
 type Prefs = { theme?: "system" | "light" | "dark"; size?: number; contrast?: boolean; noMotion?: boolean };
 const read = (): Prefs => { try { return JSON.parse(localStorage.getItem("sobbra-prefs") || "{}"); } catch { return {}; } };
@@ -20,6 +21,7 @@ export function Appearance() {
   };
   return (
     <div className="space-y-3">
+      <div><span className="label">Estilo de cores</span><SkinSwitch /><p className="muted mt-1 text-xs">Vibrante: cores fortes e menu escuro. Sutil: tons neutros e menu claro.</p></div>
       <div><label className="label">Tema</label><div className="grid grid-cols-3 gap-2">{(["system", "light", "dark"] as const).map((t) => (
         <button key={t} onClick={() => set({ theme: t })} className={`btn-ghost ${(p.theme ?? "system") === t ? "ring-2 ring-sobbra" : ""}`}>{t === "system" ? "Automático" : t === "light" ? "Claro" : "Escuro"}</button>))}</div></div>
       <div><label className="label">Tamanho do texto</label><div className="grid grid-cols-4 gap-2">{[100, 125, 150, 200].map((s) => (

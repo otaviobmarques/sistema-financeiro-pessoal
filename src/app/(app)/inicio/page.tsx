@@ -11,6 +11,8 @@ import { budgetStatus, budgetColor, goalPlan } from "@/lib/budgets";
 import { agendaItems } from "@/lib/agenda";
 import { brl } from "@/lib/money";
 import { WIDGETS, WIDE, readLayout, type WidgetKey } from "@/lib/dashboard-layout";
+import { Gauge, Kpi, FlowBars, Treemap, HeatCalendar } from "@/components/Vibe";
+import { healthScore } from "@/lib/health";
 
 const pct = (a: number, b: number) => (b ? Math.round(((a - b) / b) * 100) : null);
 
@@ -45,7 +47,7 @@ export default async function Inicio({ searchParams }: { searchParams: Promise<{
   const header = (
     <div className="mb-5 space-y-3">
       <p className="eyebrow">Olá, {first}</p>
-      <h1 className="text-[34px] leading-[1.1] md:text-[44px]">O mês, no <i>seu ritmo.</i></h1>
+      <h1 className="text-[34px] leading-[1.1] md:text-[46px]">Seu dinheiro, <i>sob controle.</i></h1>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="line inline-flex items-center rounded-full border" style={{ background: "var(--card)" }}>
           <Link href={`/inicio?mes=${prev}`} className="grid h-11 w-11 place-items-center" aria-label="Mês anterior">‹</Link>
@@ -67,11 +69,11 @@ export default async function Inicio({ searchParams }: { searchParams: Promise<{
 
   // Resumo principal: valor livre no plano com explicacao e composicao (p. 9)
   const hero = (
-    <section className="hero" aria-labelledby="livre-t">
+    <section className="hero flex flex-col" aria-labelledby="livre-t">
       <p id="livre-t" className="text-sm font-bold">{livre >= 0 ? "No seu plano, ainda há" : "Para cobrir seu plano, faltam"}</p>
       <p className="serif mt-1 text-[40px] leading-tight md:text-[48px]"><Money cents={Math.abs(livre)} /></p>
       <p className="mt-1 text-sm">{isCurrent ? `Até ${fim}` : `Em ${monthName}`} · Estimativa após contas pendentes{reserva ? " e reserva planejada" : ""}.</p>
-      <details className="group mt-4">
+      <details className="group my-4">
         <summary className="btn-dark w-full cursor-pointer list-none justify-between [&::-webkit-details-marker]:hidden">Entender meu plano <span aria-hidden className="transition-transform group-open:rotate-90">→</span></summary>
         <div className="mt-3 rounded-2xl bg-white p-4 text-ink">
           <p className="eyebrow mb-2">Como o plano é calculado</p>
@@ -85,7 +87,7 @@ export default async function Inicio({ searchParams }: { searchParams: Promise<{
           <p className="muted mt-2 text-xs">Não é saldo bancário nem garantia de sobra. Se faltar um movimento, o valor pode mudar.</p>
         </div>
       </details>
-      <div className="mt-4 flex justify-between border-t border-forest/20 pt-3 text-sm"><span>Saldo do dia a dia</span><Money cents={d.saldoAtual} className="font-bold" /></div>
+      <div className="mt-auto flex justify-between border-t border-forest/20 pt-3 text-sm"><span>Saldo do dia a dia</span><Money cents={d.saldoAtual} className="font-bold" /></div>
     </section>
   );
 
@@ -146,13 +148,48 @@ export default async function Inicio({ searchParams }: { searchParams: Promise<{
 
   // Painel personalizavel (RF-059): cada bloco e um widget; ordem e visibilidade salvas por usuario
   const budget = await budgetStatus(user.id);
+  // Painel vibrante: saude financeira, KPIs com tendencia, mapa de gastos e ritmo diario
+  const since = new Date(); since.setHours(0, 0, 0, 0); since.setDate(since.getDate() - 7 * 18 + 1 - since.getDay());
+  const [debts, dayExp] = await Promise.all([
+    db.debt.findMany({ where: { userId: user.id, paidOffAt: null } }),
+    db.transaction.findMany({ where: { userId: user.id, deletedAt: null, type: "EXPENSE", date: { gte: since, lte: new Date() } }, select: { date: true, amountCents: true } }),
+  ]);
+  const withExp = d.monthly.filter((x) => x.expense > 0);
+  const avgExpense = withExp.length ? withExp.reduce((s, x) => s + x.expense, 0) / withExp.length : 0;
+  const h = healthScore({ income: d.income, expense: d.expense, budgetsOk: budget.rows.filter((r) => r.pct < 1).length, budgetsTotal: budget.rows.length,
+    debtInterestMonthly: Math.round(debts.reduce((s, x) => s + (x.balanceCents * x.monthlyRate) / 100, 0)), reserveCents: guardado, avgExpense });
+  const mm = d.monthly; const last = mm[mm.length - 1], before = mm[mm.length - 2];
+  const dpct = (a: number, b?: number) => (b ? Math.round(((a - b) / b) * 100) : null);
+  const MON = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+  const flow = mm.map((x) => ({ label: MON[Number(x.month.slice(5)) - 1], income: x.income, expense: x.expense, hl: x.month === month }));
+  const heat: { date: string; v: number }[] = []; const byDay = new Map<string, number>();
+  for (const t of dayExp) { const k = t.date.toISOString().slice(0, 10); byDay.set(k, (byDay.get(k) ?? 0) + t.amountCents); }
+  for (let x = new Date(since); x <= new Date(); x.setDate(x.getDate() + 1)) { const k = x.toISOString().slice(0, 10); heat.push({ date: k, v: byDay.get(k) ?? 0 }); }
+  const healthCard = (
+    <section className="card rise h-full" style={{ ["--i" as string]: 1 }} aria-labelledby="saude-t">
+      <div className="mb-1 flex items-center justify-between"><h2 id="saude-t" className="font-bold">Saúde financeira</h2><span className="rounded-full px-2.5 py-1 text-[11px] font-extrabold uppercase tracking-wide" style={{ background: `${h.label[1]}22`, color: h.label[1] }}>{h.label[0]}</span></div>
+      <Gauge score={h.score} color={h.label[1]} />
+      <ul className="mt-1 space-y-2">{h.factors.map((f, i) => (
+        <li key={f.name}><div className="flex justify-between text-sm"><b>{f.name}</b><span className="muted">{f.points}/{f.max}</span></div>
+          <div className="h-[7px] overflow-hidden rounded-full" style={{ background: "var(--line)" }}><div className="growx h-full rounded-full" style={{ width: `${(f.points / f.max) * 100}%`, background: "linear-gradient(90deg,#7C5CFF,#12B76A)", animationDelay: `${i * 80}ms` }} /></div>
+          <p className="muted mt-0.5 text-xs">{f.desc}</p></li>))}</ul>
+    </section>
+  );
+  const kpis = (
+    <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <Kpi i={2} label="Entradas do mês" cents={d.income} color="#12B76A" icon="↗" series={mm.map((x) => x.income)} delta={dpct(last?.income ?? 0, before?.income)} goodUp sign />
+      <Kpi i={3} label="Saídas do mês" cents={-d.expense} color="#F2545B" icon="↘" series={mm.map((x) => x.expense)} delta={dpct(last?.expense ?? 0, before?.expense)} goodUp={false} />
+      <Kpi i={4} label="Resultado do mês" cents={d.income - d.expense} color="#7C5CFF" icon="≈" series={mm.map((x) => x.income - x.expense)} delta={null} goodUp sign />
+      <Kpi i={5} label="Saldo do dia a dia" cents={d.saldoAtual} color="#2E9BFF" icon="◎" series={d.balanceLine.filter((_, i) => i % 3 === 0).map((x) => x.balance)} delta={null} goodUp />
+    </div>
+  );
   const goalsTop = goals.slice(0, 3);
   const widgets: Record<WidgetKey, React.ReactNode> = {
     resumo: (
-      <div className="grid items-start gap-4 lg:grid-cols-2">
-        {hero}
-        <div className="space-y-4">{month3}{nextUp}</div>
-        <div className="lg:col-span-2">{recentList}</div>
+      <div className="space-y-3">
+        <div className="grid items-stretch gap-3 lg:grid-cols-[1.35fr_1fr]">{hero}{healthCard}</div>
+        {kpis}
+        <div className="grid items-start gap-3 lg:grid-cols-2">{nextUp}{recentList}</div>
       </div>
     ),
     categorias: (
@@ -176,8 +213,8 @@ export default async function Inicio({ searchParams }: { searchParams: Promise<{
     ),
     mesames: (
       <section className="card h-full">
-        <h2 className="mb-2 font-semibold">Mês a mês</h2>
-        <MonthBars data={d.monthly} />
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-2"><h2 className="font-bold">Fluxo dos últimos 6 meses</h2><span className="muted flex gap-3 text-xs"><span><i className="mr-1 inline-block h-2.5 w-2.5 rounded-sm bg-[#12B76A]" />Entradas</span><span><i className="mr-1 inline-block h-2.5 w-2.5 rounded-sm bg-[#F2545B]" />Saídas</span><span><i className="mr-1 inline-block h-2.5 w-2.5 rounded-sm bg-[#7C5CFF]" />Resultado</span></span></div>
+        <FlowBars data={flow} />
         <h2 className="mb-2 mt-4 font-semibold">Saldo ao longo do mês</h2>
         <BalanceLine data={d.balanceLine} />
       </section>
@@ -202,6 +239,18 @@ export default async function Inicio({ searchParams }: { searchParams: Promise<{
               <div className="h-2 overflow-hidden rounded-full" style={{ background: "var(--line)" }}><div className="growx h-full rounded-full bg-sobbra" style={{ width: `${p.pct * 100}%` }} /></div>
               <p className="muted mt-1 text-xs">{brl(g.savedCents)} de {brl(g.targetCents)}{p.monthly ? ` · guarde ${brl(p.monthly)}/mês` : ""}</p></li>); })}</ul>
         )}
+      </section>
+    ),
+    mapa: (
+      <section className="card h-full">
+        <div className="mb-3 flex items-center justify-between"><h2 className="font-bold">Mapa de gastos</h2><span className="muted text-xs">por estabelecimento</span></div>
+        {d.merchants.length ? <Treemap items={d.merchants} month={month} /> : <p className="muted text-sm">Nada por aqui ainda.</p>}
+      </section>
+    ),
+    ritmo: (
+      <section className="card h-full">
+        <div className="mb-3 flex items-center justify-between"><h2 className="font-bold">Ritmo de gastos</h2><span className="muted text-xs">últimas 18 semanas</span></div>
+        <HeatCalendar days={heat} />
       </section>
     ),
     estabelecimentos: (

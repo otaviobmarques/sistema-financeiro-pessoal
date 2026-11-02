@@ -44,7 +44,7 @@ export function Logo({ size = 32, word = true, symbol = false }: { size?: number
   return (
     <span className="inline-flex items-center gap-2" aria-label="sobbra">
       {(symbol || !word) && <SymbolS size={size} />}
-      {word && <span className="text-[22px] font-bold tracking-tight text-floresta dark:text-[#ECEFE6]" style={{ fontSize: size * 0.72 }}>sobbra<span style={{ color: "#E2C04E" }}>.</span></span>}
+      {word && <span className="brand-word text-[22px] font-extrabold tracking-tight text-floresta dark:text-[#ECEFE6]" style={{ fontSize: size * 0.72 }}>sobbra<span style={{ color: "#E2C04E" }}>.</span></span>}
     </span>
   );
 }
