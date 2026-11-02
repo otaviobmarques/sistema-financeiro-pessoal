@@ -7,6 +7,7 @@ export default async function Mais() {
     ["/orcamentos", "🎯", "Orçamentos e metas", "Limites por categoria e metas"],
     ["/dividas", "🧯", "Minhas dívidas", "Plano para sair do vermelho"],
     ["/importar", "📥", "Importar extrato", "OFX ou CSV do banco e do cartão"],
+    ["/nfce", "🧾", "Nota fiscal (NFC-e)", "QR Code do cupom com os itens"],
     ["/contas-a-pagar", "🧾", "Contas a pagar", "Boletos pela câmera e lembretes"],
     ["/agenda", "📅", "Agenda", "Compromissos, lembretes e contas a vencer"],
     ["/recorrentes", "🔁", "Fixas e recorrentes", "Aluguel, salário, assinaturas"],

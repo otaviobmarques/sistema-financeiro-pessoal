@@ -15,6 +15,7 @@ const extra = [
   { href: "/orcamentos", label: "Orçamentos e metas", icon: "🎯" },
   { href: "/dividas", label: "Dívidas", icon: "🧯" },
   { href: "/importar", label: "Importar extrato", icon: "📥" },
+  { href: "/nfce", label: "Nota fiscal (NFC-e)", icon: "🧾" },
   { href: "/contas-a-pagar", label: "Contas a pagar", icon: "🧾" },
   { href: "/agenda", label: "Agenda", icon: "📅" },
   { href: "/recorrentes", label: "Fixas e recorrentes", icon: "🔁" },

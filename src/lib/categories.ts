@@ -15,6 +15,7 @@ export const DEFAULT_CATEGORIES: CatDef[] = [
     { slug: "alimentacao.delivery", name: "Delivery", keywords: ["ifood", "rappi", "delivery", "uber eats", "ze delivery", "zé delivery", "aiqfome"] },
     { slug: "alimentacao.restaurante", name: "Restaurantes e lanches", keywords: ["restaurante", "lanche", "lanchonete", "almoco", "almoço", "jantar", "pizza", "hamburguer", "mcdonald", "burger king", "bk ", "subway", "bar ", "cafe", "café", "starbucks"] },
     { slug: "alimentacao.padaria", name: "Padaria", keywords: ["padaria", "pao", "pão", "panificadora"] },
+    { slug: "alimentacao.bebidas", name: "Bebidas", keywords: ["cerveja", "refrigerante", "refri", "vinho", "suco", "agua mineral", "água mineral", "energetico", "energético", "whisky", "vodka"] },
   ]},
   { slug: "transporte", name: "Transporte", icon: "🚗", color: "#3B82F6", kind: "EXPENSE", subs: [
     { slug: "transporte.combustivel", name: "Combustível", keywords: ["gasolina", "etanol", "alcool", "álcool", "diesel", "combustivel", "combustível", "posto", "shell", "ipiranga", "petrobras", "br mania"] },
@@ -42,7 +43,8 @@ export const DEFAULT_CATEGORIES: CatDef[] = [
   { slug: "compras", name: "Compras", icon: "🛍️", color: "#F97316", kind: "EXPENSE", subs: [
     { slug: "compras.roupas", name: "Roupas e acessórios", keywords: ["roupa", "renner", "c&a", "riachuelo", "zara", "shein", "tenis", "tênis", "sapato"] },
     { slug: "compras.online", name: "Lojas online", keywords: ["amazon", "mercado livre", "shopee", "magalu", "magazine luiza", "americanas", "aliexpress"] },
-    { slug: "compras.casa", name: "Casa e limpeza", keywords: ["limpeza", "detergente", "sabao", "sabão", "utilidades", "tok stok", "camicado"] },
+    { slug: "compras.casa", name: "Casa e limpeza", keywords: ["limpeza", "detergente", "sabao", "sabão", "amaciante", "desinfetante", "agua sanitaria", "água sanitária", "esponja", "utilidades", "tok stok", "camicado"] },
+    { slug: "compras.higiene", name: "Higiene pessoal", keywords: ["shampoo", "xampu", "condicionador", "sabonete", "creme dental", "pasta de dente", "desodorante", "papel higienico", "papel higiênico", "absorvente", "fralda"] },
     { slug: "compras.eletronicos", name: "Eletrônicos", keywords: ["celular novo", "notebook", "fone", "eletronico", "eletrônico", "kabum"] },
   ]},
   { slug: "pets", name: "Pets", icon: "🐾", color: "#A16207", kind: "EXPENSE", subs: [

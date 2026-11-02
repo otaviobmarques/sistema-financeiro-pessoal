@@ -25,6 +25,7 @@ export default async function Comprovantes({ searchParams }: { searchParams: Pro
       {sp.compartilhado && <p className="soft fill-in mb-3 rounded-xl p-3 text-sm">📥 Recebemos {sp.compartilhado} arquivo(s) compartilhado(s).</p>}
       {!aiEnabled() && <p className="mb-3 rounded-xl bg-ambar/15 p-3 text-sm">A leitura automática está desligada neste servidor (sem chave de IA). Os comprovantes ficam guardados e você preenche os campos na confirmação.</p>}
       <Uploader />
+      <p className="muted mt-2 text-sm">Cupom com QR Code? <a href="/nfce" className="font-semibold text-sobbra">Ler a NFC-e</a> traz cada item da compra.</p>
       <p className="muted mt-2 text-xs">{u.receipts} de {user.plan === "FREE" ? limit : "∞"} leituras este mês · Plano {PLANS[user.plan].name}</p>
 
       <h2 className="mb-2 mt-6 font-semibold">Caixa de entrada {inbox.length > 0 && <span className="rounded-full bg-sobbra px-2 text-xs text-white">{inbox.length}</span>}</h2>

@@ -6,6 +6,11 @@ import { requireUser } from "@/lib/auth";
 import { parseMoney } from "@/lib/money";
 import { budgetStatus } from "@/lib/budgets";
 import type { FormState } from "./actions";
+import { readLayout } from "@/lib/dashboard-layout";
+
+import { parseNfceInput, fetchNfce } from "@/lib/nfce";
+import { keywordSlug } from "@/lib/classify";
+
 import { ALERT_KINDS, readPrefs, type AlertKind } from "@/lib/notify-prefs";
 
 import { parseBoleto } from "@/lib/boleto";
@@ -259,4 +264,84 @@ export async function applyPlan(): Promise<{ budgets: number; goal: boolean }> {
   }
   revalidatePath("/orcamentos");
   return { budgets, goal };
+}
+
+// ---------- NFC-e (RF-070..072) ----------
+
+export async function readNfce(input: string): Promise<{ error?: string; id?: string }> {
+  const user = await requireUser();
+  const r = parseNfceInput(input);
+  if ("error" in r) return { error: r.error };
+  const existing = await db.nfce.findUnique({ where: { userId_accessKey: { userId: user.id, accessKey: r.key.key } } });
+  if (existing) return { id: existing.id };
+  const n = await db.nfce.create({ data: { userId: user.id, accessKey: r.key.key, url: r.url, uf: r.key.uf, cnpj: r.key.cnpj, number: r.key.number } });
+  try {
+    const data = await fetchNfce(r.key, r.url);
+    const merchant = data.merchant ? normalizeMerchant(data.merchant) : null;
+    const store = merchant ? await classify(user.id, { text: merchant, merchant, cnpj: r.key.cnpj, kind: "EXPENSE", useAi: false }) : null;
+    const items = [];
+    for (const it of data.items) {
+      // Categoria por item (RF-072): palavra-chave do item; se nao achar, a categoria da loja
+      const slug = keywordSlug(it.description, "EXPENSE");
+      const cat = slug ? await ensureCategory(user.id, slug) : null;
+      items.push({ ...it, categoryId: cat?.id ?? store?.categoryId ?? null });
+    }
+    await db.nfce.update({ where: { id: n.id }, data: { status: "lida", merchant, totalCents: data.totalCents, issuedAt: data.issuedAt, items: { create: items } } });
+  } catch (e: any) {
+    await db.nfce.update({ where: { id: n.id }, data: { status: "falhou", error: `Não consegui buscar os itens na SEFAZ (${e?.message ?? "erro"}). Você pode informar o total e lançar assim mesmo.` } });
+  }
+  revalidatePath("/nfce");
+  return { id: n.id };
+}
+
+export async function setNfceItemCategory(itemId: string, categoryId: string | null) {
+  const user = await requireUser();
+  const it = await db.nfceItem.findFirst({ where: { id: itemId, nfce: { userId: user.id } } });
+  if (!it) return;
+  await db.nfceItem.update({ where: { id: itemId }, data: { categoryId } });
+}
+
+/** Lanca a nota: um lancamento por categoria (mercado, limpeza, bebidas...), com os itens na observacao. */
+export async function launchNfce(id: string, accountId: string, manual?: { merchant: string; amount: string; date: string }): Promise<{ error?: string; created?: number }> {
+  const user = await requireUser();
+  const n = await db.nfce.findFirst({ where: { id, userId: user.id }, include: { items: true } });
+  if (!n) return { error: "Nota não encontrada" };
+  if (n.status === "lancada") return { error: "Esta nota já foi lançada" };
+  const account = await db.account.findFirst({ where: { id: accountId, userId: user.id } });
+  if (!account) return { error: "Escolha a conta" };
+  const merchant = manual?.merchant?.trim() || n.merchant || `CNPJ ${n.cnpj}`;
+  const date = manual?.date ? new Date(manual.date + "T12:00:00") : n.issuedAt ?? new Date();
+  let created = 0;
+  if (!n.items.length) {
+    const v = parseMoney(manual?.amount ?? "") ?? n.totalCents;
+    if (!v) return { error: "Informe o total da nota" };
+    const c = await classify(user.id, { text: merchant, merchant, cnpj: n.cnpj, kind: "EXPENSE" });
+    await createTransaction(user.id, { type: "EXPENSE", amountCents: v, description: merchant, merchant, cnpj: n.cnpj, accountId, categoryId: c.categoryId, date, tags: ["nfce"] });
+    created = 1;
+  } else {
+    const groups = new Map<string, typeof n.items>();
+    for (const it of n.items) groups.set(it.categoryId ?? "", [...(groups.get(it.categoryId ?? "") ?? []), it]);
+    const cats = new Map((await db.category.findMany({ where: { userId: user.id, id: { in: [...groups.keys()].filter(Boolean) } } })).map((c) => [c.id, c.name]));
+    // desconto/acrescimo da nota distribuido proporcionalmente
+    const itemsSum = n.items.reduce((s, i) => s + i.totalCents, 0); const factor = n.totalCents && itemsSum ? n.totalCents / itemsSum : 1;
+    let rest = n.totalCents ?? itemsSum;
+    const entries = [...groups.entries()];
+    for (const [i, [catId, its]] of entries.entries()) {
+      const raw = its.reduce((s, x) => s + x.totalCents, 0); const v = i === entries.length - 1 ? rest : Math.round(raw * factor); rest -= v;
+      await createTransaction(user.id, { type: "EXPENSE", amountCents: v, description: groups.size > 1 ? `${merchant} (${cats.get(catId) ?? "Outros"})` : merchant, merchant, cnpj: n.cnpj, accountId, categoryId: catId || null, date, tags: ["nfce"],
+        notes: its.map((x) => `${x.quantity.toLocaleString("pt-BR")} ${x.unit ?? "un"} ${x.description}: ${(x.totalCents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}`).join("\n").slice(0, 2000) });
+      created++;
+    }
+  }
+  await db.nfce.update({ where: { id }, data: { status: "lancada", ...(manual?.merchant ? { merchant } : {}) } });
+  revalidatePath("/nfce"); revalidatePath("/lancamentos"); revalidatePath("/inicio");
+  return { created };
+}
+
+// ---------- Painel personalizavel (RF-059) ----------
+
+export async function saveDashboardLayout(layout: unknown) {
+  const user = await requireUser();
+  await db.user.update({ where: { id: user.id }, data: { dashboardLayout: readLayout(layout) } });
+  revalidatePath("/inicio");
 }

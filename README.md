@@ -49,9 +49,26 @@ Trocar de provedor é configuração — tudo passa por `src/lib/ai.ts`.
 | M17 Agente de voz (“Lançar gasolina 50”, vários itens, corrigir/apagar o último, perguntas) | botão 🎙️ |
 | PWA (instalável, offline, atalhos, destino de compartilhamento) | `public/` |
 
+## Fase 2 (entregue)
+| Módulo | Onde |
+|---|---|
+| Orçamentos por categoria (cor por consumo, projeção, sugestão pela média) e metas com aporte mensal sugerido | `/orcamentos` |
+| Dívidas: juros por mês, avalanche x bola de neve, simulação de pagar a mais, parcelas na agenda | `/dividas` |
+| Importação de extratos OFX e CSV com mapeamento de colunas, pré-visualização e deduplicação | `/importar` |
+| Contas a pagar: boleto pela câmera ou linha digitável (regras Febraban, novo fator de vencimento), copiar linha/Pix | `/contas-a-pagar` |
+| NFC-e: QR Code do cupom, itens da compra e lançamento separado por categoria | `/nfce` |
+| Avisos: contas vencendo, fatura fechando, saldo negativo, orçamento 80%/100%, gasto fora do padrão, resumo semanal; push | `/avisos`, `Ajustes > Avisos` |
+| Consultor: simulações (cortar gasto, compra parcelada, quanto sobra em N meses) e plano de organização | `/consultor` |
+| Painel inicial personalizável (mostrar/esconder e ordenar blocos) e comemorações | `/inicio` |
+
+### Configuração da Fase 2
+- **Push:** gere as chaves com `npx web-push generate-vapid-keys` e preencha `VAPID_PUBLIC_KEY` e `VAPID_PRIVATE_KEY`. No iPhone, o push só funciona com o Sobbra instalado na tela de início.
+- **Avisos com o app fechado:** defina `CRON_SECRET`; o `vercel.json` já agenda `/api/cron/alerts` a cada hora.
+- **NFC-e:** sem configuração, o Sobbra consulta o portal público da SEFAZ pela URL do QR Code. Alguns estados exigem captcha; para esses, contrate um provedor de consulta e preencha `NFCE_API_URL`/`NFCE_API_KEY`.
+- **Ainda não incluído na F2:** fatura de cartão em PDF (RF-061, depende da IA de visão ligada) e envio de avisos por e-mail (precisa de um provedor de e-mail).
+
 ## Próximas fases (roadmap)
-- **F2**: importação OFX/CSV/PDF, NFC-e com itens, orçamentos e metas, alertas push/e-mail (incluindo avisos da agenda), dívidas e plano de quitação, contas a pagar com leitor de boleto.
-- **F3**: Família, investimentos e patrimônio, gamificação.
+- **F3**: Família, investimentos e patrimônio, gamificação, histórico de preços por produto (NFC-e), consultas por voz com resposta falada.
 - **F4**: Open Finance (Pluggy/Belvo), app Android companheiro, multimoeda, IRPF.
 
 ## Antes de produção

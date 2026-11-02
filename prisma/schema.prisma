@@ -100,6 +100,8 @@ model User {
   notifications Notification[]
   notifyPrefs  Json?      // canais, horario de silencio, tipos (RF-093)
   pushSubs     PushSubscription[]
+  nfces        Nfce[]
+  dashboardLayout Json?   // ordem e widgets visiveis do painel (RF-059)
 }
 
 // Agenda: compromissos, lembretes e contas a pagar (faturas e contas agendadas entram sozinhas)
@@ -377,4 +379,37 @@ model PushSubscription {
   p256dh    String
   auth      String
   createdAt DateTime @default(now())
+}
+
+// Nota fiscal do consumidor eletronica (RF-070..072)
+model Nfce {
+  id            String     @id @default(cuid())
+  userId        String
+  user          User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessKey     String     // chave de acesso, 44 digitos
+  url           String?
+  uf            String
+  cnpj          String
+  number        String
+  merchant      String?
+  totalCents    Int?
+  issuedAt      DateTime?
+  status        String     @default("pendente") // "pendente" | "lida" | "lancada" | "falhou"
+  error         String?
+  items         NfceItem[]
+  createdAt     DateTime   @default(now())
+
+  @@unique([userId, accessKey])
+}
+
+model NfceItem {
+  id          String  @id @default(cuid())
+  nfceId      String
+  nfce        Nfce    @relation(fields: [nfceId], references: [id], onDelete: Cascade)
+  description String
+  quantity    Float
+  unit        String?
+  unitCents   Int
+  totalCents  Int
+  categoryId  String?
 }
