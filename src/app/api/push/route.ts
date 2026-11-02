@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { currentUserId } from "@/lib/auth";
-import { sendPush } from "@/lib/push";
+import { sendPush, vapidKeys } from "@/lib/push";
 
 export async function GET() {
-  return NextResponse.json({ publicKey: process.env.VAPID_PUBLIC_KEY || null });
+  return NextResponse.json({ publicKey: (await vapidKeys()).publicKey });
 }
 
 /** Salva (POST) ou remove (DELETE) a assinatura push deste aparelho; ?teste=1 envia um aviso de teste. */

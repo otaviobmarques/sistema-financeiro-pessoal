@@ -413,3 +413,10 @@ model NfceItem {
   totalCents  Int
   categoryId  String?
 }
+
+// Chaves geradas pelo proprio sistema quando nao vierem das variaveis de ambiente
+model AppSecret {
+  name      String   @id
+  value     String
+  createdAt DateTime @default(now())
+}

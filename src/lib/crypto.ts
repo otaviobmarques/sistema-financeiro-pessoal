@@ -3,7 +3,9 @@ import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 
-const key = () => Buffer.from(process.env.FILE_ENC_KEY || "", "hex");
+import { fileKey } from "./secrets";
+
+const key = async () => Buffer.from(await fileKey(), "hex");
 const root = () => path.resolve(process.env.STORAGE_DIR || "storage");
 
 export const sha256 = (buf: Buffer) => createHash("sha256").update(buf).digest("hex");
@@ -14,7 +16,7 @@ const useBlob = () => Boolean(process.env.BLOB_READ_WRITE_TOKEN);
 
 export async function saveEncrypted(userId: string, buf: Buffer): Promise<string> {
   const iv = randomBytes(12);
-  const c = createCipheriv("aes-256-gcm", key(), iv);
+  const c = createCipheriv("aes-256-gcm", await key(), iv);
   const enc = Buffer.concat([c.update(buf), c.final()]);
   const out = Buffer.concat([iv, c.getAuthTag(), enc]);
   if (useBlob()) {
@@ -38,7 +40,7 @@ export async function readEncrypted(rel: string): Promise<Buffer> {
     if (!full.startsWith(root())) throw new Error("caminho invalido");
     data = await readFile(full);
   }
-  const d = createDecipheriv("aes-256-gcm", key(), data.subarray(0, 12));
+  const d = createDecipheriv("aes-256-gcm", await key(), data.subarray(0, 12));
   d.setAuthTag(data.subarray(12, 28));
   return Buffer.concat([d.update(data.subarray(28)), d.final()]);
 }
