@@ -50,3 +50,8 @@ test("acentos preservados em varios lancamentos", () => {
   const r = parseVoice("gasolina 50 e pão 12", accs, now);
   if (r.kind === "create") assert.equal(r.items[1].description, "pão");
 });
+
+test("simulações viram pergunta ao consultor", () => {
+  assert.equal(parseVoice("se eu cortar delivery pela metade", accs, now).kind, "query");
+  assert.equal(parseVoice("consigo comprar uma tv de 3 mil", accs, now).kind, "query");
+});

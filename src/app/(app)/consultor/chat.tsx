@@ -2,11 +2,12 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { MiniBars } from "@/components/Charts";
+import { applyPlan } from "@/app/actions-f2";
 
-type A = { text: string; facts: { label: string; value: string }[]; bars?: { name: string; value: number; color: string }[]; link?: string };
+type A = { text: string; facts: { label: string; value: string }[]; bars?: { name: string; value: number; color: string }[]; link?: string; actions?: { label: string; action: "apply_plan" }[] };
 type M = { role: "user" | "assistant"; text: string; data?: A };
 
-const SUGGESTIONS = ["Com o que estou gastando mais?", "Quanto ainda posso gastar?", "O que estou fazendo de errado?", "Quanto vai sobrar este mês?", "Quanto gastei com iFood mês passado?"];
+const SUGGESTIONS = ["Com o que estou gastando mais?", "O que estou fazendo de errado?", "Me ajuda a me organizar", "Se eu cortar delivery pela metade?", "Consigo comprar um celular de R$ 2.000 em 10 vezes?", "Quanto sobra em 6 meses?", "Quanto ainda posso gastar?"];
 
 export function Chat({ history }: { history: M[] }) {
   const [msgs, setMsgs] = useState<M[]>(history);
@@ -34,7 +35,8 @@ export function Chat({ history }: { history: M[] }) {
             <p className="whitespace-pre-line">{m.text}</p>
             {m.data?.facts?.length ? <div className="mt-2 flex flex-wrap gap-2">{m.data.facts.map((f) => <span key={f.label} className="soft rounded-lg px-2 py-1 text-xs"><span className="muted">{f.label}:</span> <b className="money">{f.value}</b></span>)}</div> : null}
             {m.data?.bars?.length ? <div className="mt-3"><MiniBars data={m.data.bars} /></div> : null}
-            {m.data?.link && <Link href={m.data.link} className="mt-2 inline-block text-sm font-semibold text-sobbra">Ver lançamentos ›</Link>}
+            {m.data?.actions?.map((x) => <button key={x.action} className="btn-primary mr-2 mt-3 min-h-[40px] text-sm" disabled={busy} onClick={async () => { setBusy(true); try { const r = await applyPlan(); setMsgs((ms) => [...ms, { role: "assistant", text: `Pronto! Criei ${r.budgets} orçamento${r.budgets === 1 ? "" : "s"}${r.goal ? " e a meta de reserva de emergência" : ""}. Você acompanha tudo em Orçamentos e metas.`, data: { text: "", facts: [], link: "/orcamentos" } }]); } finally { setBusy(false); } }}>{x.label}</button>)}
+            {m.data?.link && <Link href={m.data.link} className="mt-2 inline-block text-sm font-semibold text-sobbra">{m.data.link.startsWith("/orcamentos") ? "Abrir orçamentos e metas ›" : "Ver lançamentos ›"}</Link>}
           </div>
         ))}
         {busy && <div className="card mr-6 w-20 animate-pulse">…</div>}

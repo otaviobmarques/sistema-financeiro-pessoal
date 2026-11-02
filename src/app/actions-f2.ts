@@ -242,3 +242,21 @@ export async function saveNotifyPrefs(_: FormState, fd: FormData): Promise<FormS
   revalidatePath("/ajustes");
   return { ok: "Preferências de avisos salvas" };
 }
+
+// ---------- Consultor: aplicar o plano de organizacao (RF-113) ----------
+export async function applyPlan(): Promise<{ budgets: number; goal: boolean }> {
+  const user = await requireUser();
+  const budgets = await applySuggestedBudgets();
+  const has = await db.goal.findFirst({ where: { userId: user.id, name: { contains: "reserva", mode: "insensitive" } } });
+  let goal = false;
+  if (!has) {
+    const from = new Date(); from.setMonth(from.getMonth() - 3, 1); const to = new Date(); to.setDate(0);
+    const exp = await db.transaction.aggregate({ where: { userId: user.id, deletedAt: null, type: "EXPENSE", date: { gte: from, lte: to } }, _sum: { amountCents: true } });
+    const target = Math.max(100000, Math.round((exp._sum.amountCents ?? 0) / 3) * 3);
+    const deadline = new Date(); deadline.setMonth(deadline.getMonth() + 12, 1);
+    await db.goal.create({ data: { userId: user.id, name: "Reserva de emergência", icon: "🛟", targetCents: target, deadline } });
+    goal = true;
+  }
+  revalidatePath("/orcamentos");
+  return { budgets, goal };
+}

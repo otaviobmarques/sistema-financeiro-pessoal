@@ -182,7 +182,7 @@ export function parseVoice(raw: string, accountNames: string[] = [], now = new D
     const a = parseAmount(" " + wordsToDigits(fix[1]) + " ");
     if (a.cents) return { kind: "fix_amount", amountCents: a.cents };
   }
-  if (/^(quanto|qual|quais|onde|com o que|o que|como|me ajuda|estou|to |tô )/.test(t) || t.endsWith("?")) return { kind: "query", text: raw };
+  if (/^(quanto|qual|quais|onde|com o que|o que|como|me ajuda|me ajude|estou|to |tô |se eu|e se|consigo|da pra|dá pra|posso comprar|monta|faz um plano)/.test(t) || t.endsWith("?")) return { kind: "query", text: raw };
 
   // Varios lancamentos: "gasolina 50 e pão 12" — divide quando cada parte tem valor
   const withDigits = wordsToDigits(t);
