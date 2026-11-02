@@ -2,7 +2,7 @@ import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { brl, dateBR } from "@/lib/money";
-import { usage, PLANS } from "@/lib/plans";
+import { usage, getPlans } from "@/lib/plans";
 import { aiEnabled } from "@/lib/ai";
 import { Uploader } from "./uploader";
 
@@ -10,6 +10,7 @@ const DOC: Record<string, string> = { cupom: "Cupom fiscal", nfce: "NFC-e", pix:
 
 export default async function Comprovantes({ searchParams }: { searchParams: Promise<{ ok?: string; compartilhado?: string }> }) {
   const user = await requireUser();
+  const PLANS = await getPlans();
   const sp = await searchParams;
   const [inbox, done, u] = await Promise.all([
     db.receipt.findMany({ where: { userId: user.id, status: { in: ["QUEUED", "PROCESSING", "READY"] } }, orderBy: { createdAt: "desc" } }),

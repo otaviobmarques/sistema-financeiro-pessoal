@@ -5,7 +5,7 @@ import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { AccountType, TxType } from "@prisma/client";
 import { db } from "@/lib/db";
-import { createSession, destroySession, requireUser } from "@/lib/auth";
+import { createSession, destroySession, requireUser, isAdmin } from "@/lib/auth";
 import { createDefaultCategories } from "@/lib/setup-user";
 import { createTransaction, softDelete } from "@/lib/finance";
 import { classify, learn } from "@/lib/classify";
@@ -269,8 +269,10 @@ export async function updatePrefs(data: { simpleMode?: boolean; hideValues?: boo
   revalidatePath("/", "layout");
 }
 
+/** Troca manual de plano: so para administradores (cortesias e testes). Clientes assinam pelo gateway. */
 export async function changePlan(plan: "FREE" | "PRO" | "FAMILY") {
   const user = await requireUser();
+  if (!isAdmin(user)) return;
   // Integracao com gateway (Asaas/Pagar.me/Stripe) entra aqui. No MVP, troca direta para testes.
   const renews = new Date(); renews.setMonth(renews.getMonth() + 1);
   await db.user.update({ where: { id: user.id }, data: plan === "FREE" ? { plan, planRenewsAt: null, planCanceledAt: new Date() } : { plan, planRenewsAt: renews, planCanceledAt: null, lastUpsellAt: new Date() } });

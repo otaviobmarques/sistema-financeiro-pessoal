@@ -8,6 +8,8 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
 import { createDefaultCategories } from "@/lib/setup-user";
+import { clearPlansCache } from "@/lib/plans";
+
 
 export type AdminState = { error?: string; ok?: string; tempPassword?: string; id?: string; email?: string } | undefined;
 
@@ -102,4 +104,25 @@ export async function deleteUser(_: AdminState, fd: FormData): Promise<AdminStat
   await audit(me.id, "user.delete", null, `${target.role === "ADMIN" ? "Administrador" : "Cliente"} ${target.email}`);
   revalidatePath("/admin/usuarios");
   redirect("/admin/usuarios?excluido=1");
+}
+
+// ---------- Planos e cobranca ----------
+
+export async function savePlanConfig(_: AdminState, fd: FormData): Promise<AdminState> {
+  const me = await requireAdmin();
+  const code = String(fd.get("code")) as "FREE" | "PRO" | "FAMILY";
+  if (!["FREE", "PRO", "FAMILY"].includes(code)) return { error: "Plano inválido" };
+  const money = (k: string) => { const s = String(fd.get(k) || "").replace(/[R$\s.]/g, "").replace(",", "."); if (!s) return null; const n = Math.round(Number(s) * 100); return Number.isFinite(n) && n >= 0 ? n : NaN; };
+  const int = (k: string) => { const n = Number(fd.get(k)); return Number.isInteger(n) && n >= 0 ? n : NaN; };
+  const data = { name: String(fd.get("name") || "").trim(), description: String(fd.get("description") || "").trim(), priceMonthlyCents: money("price") ?? 0, priceYearlyCents: money("yearly"),
+    receiptsLimit: int("receipts"), chatLimit: int("chat"), members: int("members") || 1, active: fd.get("active") === "on" || code === "FREE" };
+  if (!data.name) return { error: "Informe o nome do plano" };
+  if ([data.priceMonthlyCents, data.priceYearlyCents ?? 0, data.receiptsLimit, data.chatLimit].some((n) => Number.isNaN(n))) return { error: "Confira os valores: use números positivos" };
+  if (code === "FREE" && data.priceMonthlyCents > 0) return { error: "O plano Grátis não pode ter preço" };
+  if (code !== "FREE" && data.priceMonthlyCents < 500) return { error: "Preço mensal mínimo de R$ 5,00 (limite dos gateways)" };
+  await db.planConfig.upsert({ where: { code }, update: data, create: { code, ...data } });
+  clearPlansCache();
+  await audit(me.id, "plan.update", null, `${data.name}: R$ ${(data.priceMonthlyCents / 100).toFixed(2)}/mês, ${data.receiptsLimit} comprovantes, ${data.chatLimit} perguntas`);
+  revalidatePath("/admin/planos"); revalidatePath("/");
+  return { ok: `Plano ${data.name} salvo. Vale para novas assinaturas; quem já assina mantém o preço até você reajustar no gateway.` };
 }

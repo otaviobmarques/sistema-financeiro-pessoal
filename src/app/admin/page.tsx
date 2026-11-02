@@ -2,11 +2,12 @@
 import Link from "next/link";
 import { requireAdmin } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { PLANS } from "@/lib/plans";
+import { getPlans } from "@/lib/plans";
 import { brl, dateBR } from "@/lib/money";
 
 export default async function Admin() {
   await requireAdmin();
+  const PLANS = await getPlans();
   const since = new Date(Date.now() - 30 * 86400000);
   const [users, byPlan, txCount, auto, receipts, ai] = await Promise.all([
     db.user.findMany({ orderBy: { createdAt: "desc" }, take: 100, include: { _count: { select: { transactions: true, receipts: true } } } }),
@@ -16,7 +17,7 @@ export default async function Admin() {
     db.receipt.groupBy({ by: ["status"], _count: true }),
     db.aiUsage.groupBy({ by: ["userId", "kind"], where: { createdAt: { gte: since } }, _sum: { tokens: true }, _count: true }),
   ]);
-  const mrr = byPlan.reduce((s, p) => s + PLANS[p.plan].price * p._count, 0);
+  const mrr = byPlan.reduce((s, p) => s + PLANS[p.plan].price * p._count, 0); // estimativa: usuarios por plano x preco atual
   const aiByUser = new Map<string, { calls: number; tokens: number }>();
   for (const a of ai) { const v = aiByUser.get(a.userId) ?? { calls: 0, tokens: 0 }; v.calls += a._count; v.tokens += a._sum.tokens ?? 0; aiByUser.set(a.userId, v); }
   const kpi = [["Usuários", users.length], ["MRR estimado", brl(mrr)], ["Lançamentos (30d)", txCount], ["Captura automática", txCount ? `${Math.round((auto / txCount) * 100)}%` : "—"]];

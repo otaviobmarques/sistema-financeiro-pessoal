@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-const items = [["/admin", "Visão geral"], ["/admin/usuarios", "Usuários"], ["/admin/auditoria", "Auditoria"]];
+const items = [["/admin", "Visão geral"], ["/admin/usuarios", "Usuários"], ["/admin/planos", "Planos e cobrança"], ["/admin/auditoria", "Auditoria"]];
 
 export function AdminNav() {
   const path = usePathname();

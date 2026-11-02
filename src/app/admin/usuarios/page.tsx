@@ -1,13 +1,14 @@
 import Link from "next/link";
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
-import { PLANS } from "@/lib/plans";
+import { getPlans } from "@/lib/plans";
 import { dateBR } from "@/lib/money";
 
 type SP = { q?: string; papel?: string; plano?: string; status?: string; excluido?: string };
 
 export default async function Usuarios({ searchParams }: { searchParams: Promise<SP> }) {
   const sp = await searchParams;
+  const PLANS = await getPlans();
   const where: Prisma.UserWhereInput = {};
   if (sp.q) where.OR = [{ name: { contains: sp.q, mode: "insensitive" } }, { email: { contains: sp.q, mode: "insensitive" } }, { phone: { contains: sp.q } }];
   if (sp.papel === "CLIENT" || sp.papel === "ADMIN") where.role = sp.papel;

@@ -1,7 +1,8 @@
 "use client";
 import { useActionState, useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { changePlan, deleteAccount, deleteRule, saveCategory, updatePrefs } from "@/app/actions";
+import { deleteAccount, deleteRule, saveCategory, updatePrefs } from "@/app/actions";
+import { startCheckout, cancelSubscription } from "@/app/actions-f2";
 
 type Prefs = { theme?: "system" | "light" | "dark"; size?: number; contrast?: boolean; noMotion?: boolean };
 const read = (): Prefs => { try { return JSON.parse(localStorage.getItem("sobbra-prefs") || "{}"); } catch { return {}; } };
@@ -41,19 +42,43 @@ export function ServerPrefs({ simple, hide, reminder }: { simple: boolean; hide:
   );
 }
 
-/** Cancelamento em 2 toques, sem retencao forcada (RF-145). */
-export function PlanBox({ plan, prices }: { plan: string; prices: { PRO: string; FAMILY: string } }) {
+type PlanOpt = { code: "PRO" | "FAMILY"; name: string; description: string; price: number; yearly: number | null };
+const brlc = (c: number) => (c / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+/** Assinar pelo gateway e cancelar em 2 toques, sem retencao forcada (RF-145). */
+export function PlanBox({ plan, plans, gateway, needsCpf, cpf, renewsAt, canceled }: { plan: string; plans: PlanOpt[]; gateway: boolean; needsCpf: boolean; cpf: string | null; renewsAt: string | null; canceled: boolean }) {
   const [confirming, setConfirming] = useState(false);
+  const [cycle, setCycle] = useState<"monthly" | "yearly">("monthly");
+  const [choice, setChoice] = useState<PlanOpt | null>(null);
+  const [doc, setDoc] = useState(cpf ?? "");
+  const [msg, setMsg] = useState<string>();
   const [p, start] = useTransition();
   const r = useRouter();
-  if (plan !== "FREE") return confirming ? (
-    <div className="flex gap-2"><button className="btn flex-1 bg-coral text-white" disabled={p} onClick={() => start(async () => { await changePlan("FREE"); setConfirming(false); r.refresh(); })}>Confirmar cancelamento</button><button className="btn-ghost" onClick={() => setConfirming(false)}>Voltar</button></div>
-  ) : <button className="btn-ghost w-full" onClick={() => setConfirming(true)}>Cancelar assinatura</button>;
+  if (plan !== "FREE") {
+    if (canceled) return <p className="soft rounded-xl p-3 text-sm">Assinatura cancelada. {renewsAt ? `Você continua com o plano até ${new Date(renewsAt).toLocaleDateString("pt-BR")} e depois volta para o Grátis, sem perder nada.` : ""}</p>;
+    return confirming ? (
+      <div className="space-y-2"><p className="text-sm">Cancelar? {renewsAt ? `O plano continua valendo até ${new Date(renewsAt).toLocaleDateString("pt-BR")}.` : ""} Seus dados ficam guardados.</p>
+        <div className="flex gap-2"><button className="btn flex-1 bg-coral text-white" disabled={p} onClick={() => start(async () => { const x = await cancelSubscription(); if (x.error) setMsg(x.error); setConfirming(false); r.refresh(); })}>Confirmar cancelamento</button><button className="btn-ghost" onClick={() => setConfirming(false)}>Voltar</button></div>
+        </div>
+    ) : <div className="space-y-2"><button className="btn-ghost w-full" onClick={() => setConfirming(true)}>Cancelar assinatura</button>{msg && <p className="text-sm text-coral">{msg}</p>}</div>;
+  }
+  if (!gateway) return <p className="soft rounded-xl p-3 text-sm">A assinatura pelo app chega em breve. Enquanto isso, o plano Grátis tem tudo para você começar.</p>;
+  const hasYearly = plans.some((x) => x.yearly);
   return (
-    <div className="grid gap-2 sm:grid-cols-2">
-      <button className="btn-primary" disabled={p} onClick={() => start(async () => { await changePlan("PRO"); r.refresh(); })}>Assinar Pro · {prices.PRO}/mês</button>
-      <button className="btn-dark" disabled={p} onClick={() => start(async () => { await changePlan("FAMILY"); r.refresh(); })}>Família · {prices.FAMILY}/mês</button>
-      <p className="muted text-xs sm:col-span-2">Ambiente de testes: a troca é imediata. A cobrança por cartão/Pix entra com o gateway de pagamento.</p>
+    <div className="space-y-3">
+      {hasYearly && <div className="inline-flex rounded-xl p-1" style={{ background: "var(--line)" }}>{(["monthly", "yearly"] as const).map((c) => <button key={c} className={`min-h-[40px] rounded-lg px-4 text-sm font-semibold ${cycle === c ? "bg-sobbra text-white" : ""}`} onClick={() => setCycle(c)}>{c === "monthly" ? "Mensal" : "Anual"}</button>)}</div>}
+      <div className="grid gap-2 sm:grid-cols-2">{plans.map((x) => { const price = cycle === "yearly" ? x.yearly : x.price; if (!price) return null; return (
+        <button key={x.code} className={`card text-left ${choice?.code === x.code ? "ring-2 ring-sobbra" : ""}`} onClick={() => { setChoice(x); setMsg(undefined); }}>
+          <b>{x.name}</b> · {brlc(price)}/{cycle === "yearly" ? "ano" : "mês"}{cycle === "yearly" && x.yearly ? <span className="ml-1 text-xs text-sobbra">economize {Math.round((1 - x.yearly / (x.price * 12)) * 100)}%</span> : null}
+          <span className="muted block text-sm">{x.description}</span></button>); })}</div>
+      {choice && (
+        <div className="flex flex-wrap items-end gap-2">
+          {needsCpf && <div><label className="label" htmlFor="cpf">CPF (para emitir a cobrança)</label><input id="cpf" className="input" inputMode="numeric" value={doc} onChange={(e) => setDoc(e.target.value)} placeholder="000.000.000-00" /></div>}
+          <button className="btn-primary" disabled={p} onClick={() => start(async () => { const x = await startCheckout(choice.code, cycle, doc); if (x.error) setMsg(x.error); else if (x.url) window.location.href = x.url; })}>{p ? "Abrindo pagamento…" : `Assinar ${choice.name}`}</button>
+        </div>
+      )}
+      {msg && <p className="text-sm text-coral">{msg}</p>}
+      <p className="muted text-xs">Pagamento seguro pelo gateway. Avisamos 3 dias antes de cada renovação. Cancele quando quiser, aqui mesmo.</p>
     </div>
   );
 }

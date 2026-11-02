@@ -24,6 +24,10 @@ export async function collectAlerts(userId: string, now = new Date()): Promise<N
   for (const b of bills) { const n = inDays(b.dueDate, now); if (n <= b.remindDays) out.push({ kind: "conta", dedupKey: `bill:${b.id}:${n < 0 ? "late" : n === 0 ? "today" : "soon"}`, title: `${b.payee} ${when(n)}`, body: `${brl(b.amountCents)}. Copie a linha digitável e pague no app do banco.`, href: "/contas-a-pagar" }); }
   for (const t of pending) { const n = inDays(t.date, now); if (n <= 3) out.push({ kind: "conta", dedupKey: `tx:${t.id}:${n < 0 ? "late" : n === 0 ? "today" : "soon"}`, title: `${t.description} ${when(n)}`, body: `${brl(t.amountCents)} agendado. Marque como pago quando pagar.`, href: "/agenda" }); }
   for (const e of events) { const n = inDays(e.date, now); out.push({ kind: "conta", dedupKey: `ev:${e.id}:${n <= 0 ? "today" : "soon"}`, title: `${e.title} ${when(n)}`, body: e.amountCents ? brl(e.amountCents) : "Está na sua agenda.", href: "/agenda" }); }
+  // Renovacao da assinatura do Sobbra: aviso 3 dias antes (RF-145)
+  for (const s of await db.subscription.findMany({ where: { userId, status: "active", currentPeriodEnd: { gte: now, lte: new Date(+now + 3 * day) } } })) {
+    out.push({ kind: "conta", dedupKey: `renew:${s.id}:${ymd(s.currentPeriodEnd!)}`, title: `Sua assinatura renova ${when(inDays(s.currentPeriodEnd!, now)).replace("vence", "").trim()}`, body: `${brl(s.priceCents)} no plano ${s.plan === "PRO" ? "Pro" : "Família"}. Se não quiser continuar, cancele em Ajustes, em 2 toques.`, href: "/ajustes#plano" });
+  }
   // Fatura fechando e vencendo
   for (const c of await db.account.findMany({ where: { userId, archived: false, type: "CREDIT_CARD" } })) {
     const inv = await cardInvoices(userId, c.id);

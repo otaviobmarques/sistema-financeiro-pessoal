@@ -6,6 +6,9 @@ import { requireUser } from "@/lib/auth";
 import { parseMoney } from "@/lib/money";
 import { budgetStatus } from "@/lib/budgets";
 import type { FormState } from "./actions";
+import { provider as billingProvider, appUrl, type Cycle } from "@/lib/billing";
+import { getPlans } from "@/lib/plans";
+
 import { readLayout } from "@/lib/dashboard-layout";
 
 import { parseNfceInput, fetchNfce } from "@/lib/nfce";
@@ -344,4 +347,56 @@ export async function saveDashboardLayout(layout: unknown) {
   const user = await requireUser();
   await db.user.update({ where: { id: user.id }, data: { dashboardLayout: readLayout(layout) } });
   revalidatePath("/inicio");
+}
+
+// ---------- Assinatura do SaaS ----------
+
+const onlyDigits = (s: string) => s.replace(/\D/g, "");
+function validCpf(c: string) {
+  if (c.length !== 11 || /^(\d)\1+$/.test(c)) return false;
+  const dv = (n: number) => { let s = 0; for (let i = 0; i < n; i++) s += Number(c[i]) * (n + 1 - i); const r = (s * 10) % 11; return r === 10 ? 0 : r; };
+  return dv(9) === Number(c[9]) && dv(10) === Number(c[10]);
+}
+
+export async function startCheckout(plan: "PRO" | "FAMILY", cycle: Cycle, cpf?: string): Promise<{ error?: string; url?: string }> {
+  const user = await requireUser();
+  const p = billingProvider();
+  if (!p) return { error: "O pagamento online ainda não está disponível." };
+  const plans = await getPlans(); const info = plans[plan];
+  if (!info?.active) return { error: "Este plano não está disponível." };
+  const price = cycle === "yearly" ? info.yearly : info.price;
+  if (!price) return { error: "Este plano não tem cobrança anual." };
+  let cpfCnpj = user.cpfCnpj;
+  if (p.needsCpf) {
+    const c = onlyDigits(cpf || user.cpfCnpj || "");
+    if (!(validCpf(c) || c.length === 14)) return { error: "Informe um CPF válido para emitir a cobrança." };
+    cpfCnpj = c; if (c !== user.cpfCnpj) await db.user.update({ where: { id: user.id }, data: { cpfCnpj: c } });
+  }
+  const sub = await db.subscription.create({ data: { userId: user.id, provider: p.id, plan, cycle, priceCents: price } });
+  try {
+    const r = await p.createCheckout({ userId: user.id, name: user.name, email: user.email, cpfCnpj, plan, planName: info.name, cycle, priceCents: price,
+      successUrl: `${appUrl()}/ajustes?assinatura=ok#plano`, cancelUrl: `${appUrl()}/ajustes#plano`, webhookUrl: `${appUrl()}/api/billing/webhook/${p.id}` });
+    await db.subscription.update({ where: { id: sub.id }, data: { checkoutUrl: r.url, externalId: r.externalId, externalCustomerId: r.customerId } });
+    return { url: r.url };
+  } catch (e: any) {
+    await db.subscription.update({ where: { id: sub.id }, data: { status: "canceled", canceledAt: new Date() } });
+    console.error("checkout", e);
+    return { error: "Não consegui abrir o pagamento agora. Tente de novo em alguns minutos." };
+  }
+}
+
+/** Cancelamento em 2 toques, sem retencao (RF-145): o plano vale ate o fim do periodo pago. */
+export async function cancelSubscription(): Promise<{ error?: string; until?: string | null }> {
+  const user = await requireUser();
+  const sub = await db.subscription.findFirst({ where: { userId: user.id, status: { in: ["active", "past_due", "pending"] } }, orderBy: { createdAt: "desc" } });
+  if (sub?.externalId) {
+    const p = billingProvider();
+    try { await p?.cancel(sub.externalId); }
+    catch (e: any) { if (!/ 404/.test(String(e?.message))) { console.error("cancel", e); return { error: "Não consegui cancelar no gateway agora. Tente de novo; se persistir, fale com o suporte." }; } } // 404: ja nao existe no gateway
+  }
+  if (sub) await db.subscription.update({ where: { id: sub.id }, data: { status: "canceled", canceledAt: new Date() } });
+  const until = user.planRenewsAt && user.planRenewsAt > new Date() ? user.planRenewsAt : null;
+  await db.user.update({ where: { id: user.id }, data: until ? { planCanceledAt: new Date() } : { plan: "FREE", planRenewsAt: null, planCanceledAt: new Date() } });
+  revalidatePath("/ajustes");
+  return { until: until?.toISOString() ?? null };
 }

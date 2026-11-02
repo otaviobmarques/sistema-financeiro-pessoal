@@ -3,6 +3,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { runAlerts } from "@/lib/alerts";
+import { expireSubscriptions } from "@/lib/billing/apply";
 
 let lastRun = 0;
 
@@ -15,8 +16,9 @@ export async function GET(req: Request) {
     if (Date.now() - lastRun < 30 * 60 * 1000) return NextResponse.json({ skipped: true });
   }
   lastRun = Date.now();
+  const expired = await expireSubscriptions();
   const users = await db.user.findMany({ where: { active: true, onboarded: true }, select: { id: true } });
   let created = 0;
   for (const u of users) { try { created += await runAlerts(u.id, { force: true }); } catch (e) { console.error("alerts", u.id, e); } }
-  return NextResponse.json({ users: users.length, created });
+  return NextResponse.json({ users: users.length, created, expired });
 }

@@ -2,19 +2,20 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { currentUserId } from "@/lib/auth";
 import { Logo } from "@/components/ui";
-import { PLANS } from "@/lib/plans";
+import { getPlans } from "@/lib/plans";
 import { brl } from "@/lib/money";
 
 export default async function Landing({ searchParams }: { searchParams: Promise<{ excluida?: string }> }) {
   if (await currentUserId()) redirect("/inicio");
   const sp = await searchParams;
+  const PLANS = await getPlans();
   const rows: [string, string, string, string][] = [
     ["Lançamentos, contas e categorias", "Ilimitado", "Ilimitado", "Ilimitado"],
-    ["Leitura de comprovante por IA", "15/mês", "Ilimitado*", "Ilimitado*"],
+    ["Leitura de comprovante por IA", `${PLANS.FREE.receipts}/mês`, "Ilimitado*", "Ilimitado*"],
     ["Agente de voz", "Sim", "Sim", "Sim"],
-    ["Consultor IA (perguntas)", "10/mês", "Ampliado*", "Ampliado*"],
+    ["Consultor IA (perguntas)", `${PLANS.FREE.chat}/mês`, "Ampliado*", "Ampliado*"],
     ["Open Finance", "—", "Até 3 conexões", "Até 8 conexões"],
-    ["Espaço compartilhado", "—", "—", "Até 5 pessoas"],
+    ["Espaço compartilhado", "—", "—", `Até ${PLANS.FAMILY.members} pessoas`],
   ];
   return (
     <main className="mx-auto max-w-5xl px-4 pb-16">
@@ -57,7 +58,7 @@ export default async function Landing({ searchParams }: { searchParams: Promise<
             <tbody>{rows.map((r) => <tr key={r[0]} className="line border-b last:border-0">{r.map((c, i) => <td key={i} className={`p-3 ${i === 0 ? "font-medium" : ""}`}>{c}</td>)}</tr>)}</tbody>
           </table>
         </div>
-        <p className="muted mt-2 text-xs">* Com política de uso justo. Pro anual: {brl(PLANS.PRO.yearly)}.</p>
+        <p className="muted mt-2 text-xs">* Com política de uso justo.{PLANS.PRO.yearly ? ` Pro anual: ${brl(PLANS.PRO.yearly)}.` : ""} Cancele quando quiser, em 2 toques.</p>
       </section>
     </main>
   );

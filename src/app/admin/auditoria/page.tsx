@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 
-const ACT: Record<string, string> = { "user.create": "Criou usuário", "user.update": "Alterou usuário", "user.block": "Bloqueou acesso", "user.unblock": "Liberou acesso", "user.reset_password": "Gerou senha provisória", "user.delete": "Excluiu usuário" };
+const ACT: Record<string, string> = { "user.create": "Criou usuário", "user.update": "Alterou usuário", "user.block": "Bloqueou acesso", "user.unblock": "Liberou acesso", "user.reset_password": "Gerou senha provisória", "user.delete": "Excluiu usuário", "plan.update": "Alterou plano" };
 
 export default async function Auditoria() {
   const logs = await db.auditLog.findMany({ include: { actor: true }, orderBy: { createdAt: "desc" }, take: 200 });

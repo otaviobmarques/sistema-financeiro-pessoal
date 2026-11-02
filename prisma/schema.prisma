@@ -102,6 +102,8 @@ model User {
   pushSubs     PushSubscription[]
   nfces        Nfce[]
   dashboardLayout Json?   // ordem e widgets visiveis do painel (RF-059)
+  subscriptions Subscription[]
+  cpfCnpj      String?    // exigido pelo gateway para emitir cobranca
 }
 
 // Agenda: compromissos, lembretes e contas a pagar (faturas e contas agendadas entram sozinhas)
@@ -419,4 +421,51 @@ model AppSecret {
   name      String   @id
   value     String
   createdAt DateTime @default(now())
+}
+
+// ---------- Cobranca do SaaS ----------
+// Planos editaveis pelo backoffice (precos e limites)
+model PlanConfig {
+  code              Plan     @id
+  name              String
+  description       String   @default("")
+  priceMonthlyCents Int
+  priceYearlyCents  Int?
+  receiptsLimit     Int      // leituras de comprovante por mes
+  chatLimit         Int      // perguntas ao consultor por mes
+  members           Int      @default(1)
+  active            Boolean  @default(true)
+  updatedAt         DateTime @updatedAt
+}
+
+model Subscription {
+  id                 String    @id @default(cuid())
+  userId             String
+  user               User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider           String    // "asaas" | "stripe"
+  externalId         String?   @unique
+  externalCustomerId String?
+  plan               Plan
+  cycle              String    // "monthly" | "yearly"
+  priceCents         Int
+  status             String    @default("pending") // pending | active | past_due | canceled
+  checkoutUrl        String?
+  currentPeriodEnd   DateTime?
+  canceledAt         DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@index([userId, status])
+}
+
+// Eventos recebidos do gateway (idempotencia: cada evento e processado uma vez)
+model BillingEvent {
+  id         String   @id @default(cuid())
+  provider   String
+  eventId    String
+  type       String
+  payload    Json
+  createdAt  DateTime @default(now())
+
+  @@unique([provider, eventId])
 }

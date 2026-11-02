@@ -1,15 +1,18 @@
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { PLANS, usage } from "@/lib/plans";
+import { getPlans, usage } from "@/lib/plans";
 import { brl, dateBR } from "@/lib/money";
 import { aiEnabled, aiProvider } from "@/lib/ai";
 import { logout } from "@/app/actions";
 import { readPrefs } from "@/lib/notify-prefs";
+import { provider as billingProvider } from "@/lib/billing";
 import { AlertPrefs } from "./avisos";
 import { Appearance, PlanBox, CategoryForm, RuleDelete, DeleteAccount, ServerPrefs } from "./client";
 
-export default async function Ajustes() {
+export default async function Ajustes({ searchParams }: { searchParams: Promise<{ assinatura?: string }> }) {
+  const sp = await searchParams;
   const user = await requireUser();
+  const PLANS = await getPlans();
   const [cats, rules, u] = await Promise.all([
     db.category.findMany({ where: { userId: user.id, parentId: null }, include: { children: { orderBy: { name: "asc" } } }, orderBy: [{ kind: "desc" }, { name: "asc" }] }),
     db.rule.findMany({ where: { userId: user.id }, include: { category: { include: { parent: true } } } }),
@@ -27,7 +30,9 @@ export default async function Ajustes() {
         <h2 className="font-semibold">Plano e pagamento</h2>
         <p>Você está no plano <b>{PLANS[user.plan].name}</b>{user.planRenewsAt && <> · renova em {dateBR(user.planRenewsAt)} (avisamos 3 dias antes)</>}.</p>
         <p className="muted text-sm">Este mês: {u.receipts} leituras de comprovante, {u.chat} perguntas ao consultor.</p>
-        <PlanBox plan={user.plan} prices={{ PRO: brl(PLANS.PRO.price), FAMILY: brl(PLANS.FAMILY.price) }} />
+        <PlanBox plan={user.plan} plans={(["PRO", "FAMILY"] as const).filter((c) => PLANS[c].active).map((c) => ({ code: c, name: PLANS[c].name, description: PLANS[c].description, price: PLANS[c].price, yearly: PLANS[c].yearly }))}
+          gateway={Boolean(billingProvider())} needsCpf={billingProvider()?.needsCpf ?? false} cpf={user.cpfCnpj} renewsAt={user.planRenewsAt?.toISOString() ?? null} canceled={!!user.planCanceledAt && user.plan !== "FREE"} />
+        {sp.assinatura === "ok" && <p className="soft rounded-xl p-3 text-sm">Recebemos seu pedido. Assim que o pagamento for confirmado, o plano é liberado (Pix e cartão costumam ser na hora).</p>}
       </section>
 
       <section className="card space-y-3">

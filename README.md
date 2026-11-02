@@ -76,6 +76,13 @@ Trocar de provedor é configuração — tudo passa por `src/lib/ai.ts`.
 - **F3**: Família, investimentos e patrimônio, gamificação, histórico de preços por produto (NFC-e), consultas por voz com resposta falada.
 - **F4**: Open Finance (Pluggy/Belvo), app Android companheiro, multimoeda, IRPF.
 
+## Cobrança do SaaS (planos)
+- **Planos editáveis:** Backoffice → Planos e cobrança (nome, descrição, preço mensal/anual, limites e se está à venda).
+- **Gateway:** defina `PAYMENT_PROVIDER` (`asaas` ou `stripe`) e as chaves dele. Sem isso, os clientes veem “assinatura em breve” e só o administrador muda planos (cortesias).
+  - Asaas (Pix, boleto e cartão): `ASAAS_API_KEY`, `ASAAS_WEBHOOK_TOKEN`, `ASAAS_ENV=sandbox|production`. Webhook: `https://sobbra.com.br/api/billing/webhook/asaas`.
+  - Stripe (cartão): `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`. Webhook: `https://sobbra.com.br/api/billing/webhook/stripe`.
+- O plano é liberado quando o gateway confirma o pagamento (webhook). Cancelamento em 2 toques: o plano vale até o fim do período pago. Atraso de mais de 5 dias volta para o Grátis. Aviso 3 dias antes de cada renovação.
+
 ## Antes de produção
 - Gateway de pagamento real (hoje a troca de plano é direta, para testes).
 - Login com Google/Apple, 2FA e passkeys (RF-001/002).

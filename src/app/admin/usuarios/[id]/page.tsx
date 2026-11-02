@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
-import { PLANS, usage } from "@/lib/plans";
+import { getPlans, usage } from "@/lib/plans";
 import { dateBR } from "@/lib/money";
 import { UserForm, UserActions } from "../form";
 
@@ -9,6 +9,7 @@ const ACT: Record<string, string> = { "user.create": "Cadastro criado", "user.up
 
 export default async function EditarUsuario({ params }: { params: Promise<{ id: string }> }) {
   const me = await requireAdmin();
+  const PLANS = await getPlans();
   const { id } = await params;
   const u = await db.user.findUnique({ where: { id }, include: { _count: { select: { transactions: true, accounts: true, receipts: true } } } });
   if (!u) notFound();

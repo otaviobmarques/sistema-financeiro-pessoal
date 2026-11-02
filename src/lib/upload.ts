@@ -3,12 +3,13 @@ import { db } from "@/lib/db";
 import { currentUserId } from "@/lib/auth";
 import { saveEncrypted, sha256 } from "@/lib/crypto";
 import { processReceipt } from "@/lib/receipts";
-import { canUse, PLANS } from "@/lib/plans";
+import { canUse, getPlans } from "@/lib/plans";
 
 const OK_TYPES = ["image/jpeg", "image/png", "image/webp", "image/heic", "application/pdf"];
 
 export async function handleUpload(userId: string, files: File[]) {
   const user = await db.user.findUniqueOrThrow({ where: { id: userId } });
+  const PLANS = await getPlans();
   const results: { id?: string; name: string; status: string }[] = [];
   for (const f of files) {
     if (!OK_TYPES.includes(f.type)) { results.push({ name: f.name, status: "formato não suportado" }); continue; }
