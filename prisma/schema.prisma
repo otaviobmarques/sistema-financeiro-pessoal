@@ -16,6 +16,12 @@ enum Plan {
   FAMILY
 }
 
+// Papel de acesso: Cliente usa o app; Administrador acessa o backoffice
+enum Role {
+  CLIENT
+  ADMIN
+}
+
 enum AccountType {
   CHECKING   // corrente
   SAVINGS    // poupanca
@@ -59,6 +65,11 @@ model User {
   name            String
   email           String    @unique
   passwordHash    String
+  role            Role      @default(CLIENT)
+  active          Boolean   @default(true)   // bloqueado pelo administrador = false
+  phone           String?
+  mustChangePassword Boolean @default(false) // senha provisoria criada pelo admin
+  lastLoginAt     DateTime?
   plan            Plan      @default(FREE)
   planRenewsAt    DateTime?
   planCanceledAt  DateTime?
@@ -80,6 +91,20 @@ model User {
   merchants    MerchantMemory[]
   aiUsage      AiUsage[]
   chat         ChatMessage[]
+  auditActor   AuditLog[] @relation("actor")
+}
+
+// Registro das acoes administrativas (LGPD: rastreabilidade de quem alterou o que)
+model AuditLog {
+  id        String   @id @default(cuid())
+  actorId   String?
+  actor     User?    @relation("actor", fields: [actorId], references: [id], onDelete: SetNull)
+  action    String   // "user.create" | "user.update" | "user.block" | "user.unblock" | "user.reset_password" | "user.delete"
+  targetId  String?
+  detail    String?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
 }
 
 model Account {

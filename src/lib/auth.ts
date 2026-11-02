@@ -1,6 +1,6 @@
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { db } from "./db";
 
 const secret = () => new TextEncoder().encode(process.env.AUTH_SECRET || "dev-secret");
@@ -25,8 +25,17 @@ export async function currentUserId(): Promise<string | null> {
 export async function requireUser() {
   const id = await currentUserId();
   const user = id ? await db.user.findUnique({ where: { id } }) : null;
-  if (!user) redirect("/entrar");
+  if (!user || !user.active) redirect("/entrar");
   return user;
 }
 
-export const isAdmin = (email: string) => (process.env.ADMIN_EMAILS || "").split(",").map((s) => s.trim()).includes(email);
+/** Administrador: papel ADMIN no banco, ou e-mail em ADMIN_EMAILS (usado para criar o primeiro admin). */
+export const isAdmin = (u: { email: string; role?: string }) =>
+  u.role === "ADMIN" || (process.env.ADMIN_EMAILS || "").split(",").map((s) => s.trim().toLowerCase()).filter(Boolean).includes(u.email.toLowerCase());
+
+/** Garante que quem chama e administrador; caso contrario, 404 (nao revela que a area existe). */
+export async function requireAdmin() {
+  const user = await requireUser();
+  if (!isAdmin(user)) notFound();
+  return user;
+}

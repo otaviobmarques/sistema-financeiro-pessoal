@@ -1,14 +1,12 @@
 // Painel administrativo (RF-143): usuarios, planos, metricas e custo de IA por usuario.
-import { notFound } from "next/navigation";
 import Link from "next/link";
-import { requireUser, isAdmin } from "@/lib/auth";
+import { requireAdmin } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { PLANS } from "@/lib/plans";
 import { brl, dateBR } from "@/lib/money";
 
 export default async function Admin() {
-  const me = await requireUser();
-  if (!isAdmin(me.email)) notFound();
+  await requireAdmin();
   const since = new Date(Date.now() - 30 * 86400000);
   const [users, byPlan, txCount, auto, receipts, ai] = await Promise.all([
     db.user.findMany({ orderBy: { createdAt: "desc" }, take: 100, include: { _count: { select: { transactions: true, receipts: true } } } }),
@@ -23,8 +21,8 @@ export default async function Admin() {
   for (const a of ai) { const v = aiByUser.get(a.userId) ?? { calls: 0, tokens: 0 }; v.calls += a._count; v.tokens += a._sum.tokens ?? 0; aiByUser.set(a.userId, v); }
   const kpi = [["Usuários", users.length], ["MRR estimado", brl(mrr)], ["Lançamentos (30d)", txCount], ["Captura automática", txCount ? `${Math.round((auto / txCount) * 100)}%` : "—"]];
   return (
-    <main className="mx-auto max-w-6xl p-4">
-      <div className="mb-4 flex items-center justify-between"><h1 className="text-xl font-bold">🛠️ Backoffice</h1><Link href="/inicio" className="btn-ghost">Voltar ao app</Link></div>
+    <div>
+      <div className="mb-4 flex items-center justify-between"><h1 className="text-xl font-bold">Visão geral</h1><Link href="/admin/usuarios/novo" className="btn-primary">+ Novo usuário</Link></div>
       <div className="mb-4 grid gap-3 sm:grid-cols-4">{kpi.map(([l, v]) => <div key={String(l)} className="card"><p className="muted text-sm">{l}</p><p className="text-2xl font-bold">{v}</p></div>)}</div>
       <div className="mb-4 grid gap-3 sm:grid-cols-2">
         <div className="card"><h2 className="mb-2 font-semibold">Por plano</h2>{byPlan.map((p) => <p key={p.plan}>{PLANS[p.plan].name}: <b>{p._count}</b></p>)}</div>
@@ -34,9 +32,9 @@ export default async function Admin() {
         <table className="w-full min-w-[700px] text-sm">
           <thead><tr className="line border-b text-left"><th className="p-3">Usuário</th><th>Plano</th><th>Desde</th><th>Lançamentos</th><th>Comprovantes</th><th>IA (30d) chamadas / tokens</th></tr></thead>
           <tbody>{users.map((u) => { const a = aiByUser.get(u.id); return (
-            <tr key={u.id} className="line border-b"><td className="p-3">{u.name}<span className="muted block text-xs">{u.email}</span></td><td>{PLANS[u.plan].name}</td><td>{dateBR(u.createdAt)}</td><td>{u._count.transactions}</td><td>{u._count.receipts}</td><td>{a ? `${a.calls} / ${a.tokens.toLocaleString("pt-BR")}` : "—"}</td></tr>); })}</tbody>
+            <tr key={u.id} className="line border-b"><td className="p-3"><Link className="font-medium hover:underline" href={`/admin/usuarios/${u.id}`}>{u.name}</Link><span className="muted block text-xs">{u.email}</span></td><td>{PLANS[u.plan].name}</td><td>{dateBR(u.createdAt)}</td><td>{u._count.transactions}</td><td>{u._count.receipts}</td><td>{a ? `${a.calls} / ${a.tokens.toLocaleString("pt-BR")}` : "—"}</td></tr>); })}</tbody>
         </table>
       </div>
-    </main>
+    </div>
   );
 }

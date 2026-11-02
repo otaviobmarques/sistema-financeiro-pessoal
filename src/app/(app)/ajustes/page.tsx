@@ -47,6 +47,7 @@ export default async function Ajustes() {
         <DeleteAccount />
       </section>
 
+      <a href="/trocar-senha" className="btn-ghost w-full">Trocar senha</a>
       <form action={logout}><button className="btn-ghost w-full">Sair da conta</button></form>
     </div>
   );

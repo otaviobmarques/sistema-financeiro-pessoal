@@ -26,7 +26,7 @@ export async function signup(_: FormState, fd: FormData): Promise<FormState> {
   if (!p.success) return { error: p.error.issues[0].message };
   const email = p.data.email.toLowerCase().trim();
   if (await db.user.findUnique({ where: { email } })) return { error: "Já existe uma conta com esse e-mail" };
-  const user = await db.user.create({ data: { name: p.data.name.trim(), email, passwordHash: await bcrypt.hash(p.data.password, 12) } });
+  const user = await db.user.create({ data: { name: p.data.name.trim(), email, passwordHash: await bcrypt.hash(p.data.password, 12), lastLoginAt: new Date() } });
   await createDefaultCategories(user.id);
   await createSession(user.id);
   redirect("/onboarding");
@@ -45,9 +45,12 @@ export async function login(_: FormState, fd: FormData): Promise<FormState> {
     attempts.set(email, { n, until: n >= 5 ? Date.now() + 5 * 60000 : 0 });
     return { error: "E-mail ou senha incorretos" };
   }
+  if (!user.active) return { error: "Este acesso está bloqueado. Fale com o suporte do Sobbra." };
   attempts.delete(email);
+  await db.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
   await createSession(user.id);
-  redirect(user.onboarded ? "/inicio" : "/onboarding");
+  if (user.mustChangePassword) redirect("/trocar-senha");
+  redirect(user.role === "ADMIN" && !user.onboarded ? "/admin" : user.onboarded ? "/inicio" : "/onboarding");
 }
 
 export async function logout() {
@@ -286,4 +289,15 @@ export async function suggestCategory(text: string, kind: "INCOME" | "EXPENSE") 
   if (!text.trim()) return null;
   const c = await classify(user.id, { text, merchant: text, kind, useAi: false });
   return c.source === "padrao" ? null : c.categoryId;
+}
+
+export async function changePassword(_: FormState, fd: FormData): Promise<FormState> {
+  const user = await requireUser();
+  const current = String(fd.get("current") || ""), next = String(fd.get("next") || ""), confirm = String(fd.get("confirm") || "");
+  if (!(await bcrypt.compare(current, user.passwordHash))) return { error: "A senha atual não confere" };
+  if (next.length < 8) return { error: "A nova senha precisa de pelo menos 8 caracteres" };
+  if (next !== confirm) return { error: "As duas senhas novas não são iguais" };
+  if (next === current) return { error: "Escolha uma senha diferente da atual" };
+  await db.user.update({ where: { id: user.id }, data: { passwordHash: await bcrypt.hash(next, 12), mustChangePassword: false } });
+  redirect(user.role === "ADMIN" && !user.onboarded ? "/admin" : user.onboarded ? "/inicio" : "/onboarding");
 }

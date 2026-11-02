@@ -10,12 +10,15 @@ Requisitos: Node 20+, PostgreSQL 14+.
 cp .env.example .env        # ajuste DATABASE_URL, AUTH_SECRET e FILE_ENC_KEY
 npm install
 npx prisma db push          # cria as tabelas
-npm run db:seed             # opcional: demo@sobbra.app / sobbra123 (admin@sobbra.app = backoffice)
+npm run db:seed             # opcional: demo@sobbra.app / sobbra123 (cliente) e admin@sobbra.app / sobbra123 (administrador)
 npm run dev                 # http://localhost:3000
 npm test                    # testes do interpretador de voz, valores e faturas
 ```
 
 Gere uma `FILE_ENC_KEY` com `openssl rand -hex 32` e um `AUTH_SECRET` com `openssl rand -base64 32`.
+
+## Primeiro administrador
+O primeiro acesso ao backoffice vem do `ADMIN_EMAILS` no `.env` (ou do seed). Depois disso, crie os demais administradores pela tela **Backoffice > Usuários**: o papel fica salvo no banco, e o sistema impede ficar sem nenhum administrador ativo.
 
 ## IA (seção 8.2)
 Sem chave, o app funciona em **modo local**: voz interpretada por regras em pt-BR, classificação por regras/histórico/base de palavras-chave, consultor com números do banco. Comprovantes ficam guardados e o usuário preenche os campos.
@@ -38,6 +41,7 @@ Trocar de provedor é configuração — tudo passa por `src/lib/ai.ts`.
 | M6 Painéis com drill-down, ranking vs mês anterior e média 3 meses, previsão de saldo | `/inicio`, `/relatorios` |
 | M11 Consultor (“Com o que estou gastando mais?”, “O que estou fazendo de errado?”, limite no grátis) | `/consultor` |
 | M14 Planos, cancelamento em 2 toques, política anti-incômodo, backoffice | `/ajustes#plano`, `/admin` |
+| Cadastro de usuários (Clientes e Administradores): criar, editar, senha provisória com troca obrigatória, bloquear, excluir, auditoria | `/admin/usuarios`, `/admin/auditoria` |
 | M15/M16 Animações, Modo Simples, termos explicados, fonte até 200%, alto contraste, tema escuro | todo o app |
 | M17 Agente de voz (“Lançar gasolina 50”, vários itens, corrigir/apagar o último, perguntas) | botão 🎙️ |
 | PWA (instalável, offline, atalhos, destino de compartilhamento) | `public/` |

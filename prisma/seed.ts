@@ -9,7 +9,7 @@ const db = new PrismaClient();
 async function main() {
   for (const email of ["demo@sobbra.app", "admin@sobbra.app"]) await db.user.deleteMany({ where: { email } });
   const hash = await bcrypt.hash("sobbra123", 12);
-  await db.user.create({ data: { name: "Admin", email: "admin@sobbra.app", passwordHash: hash, onboarded: true } }).then((u) => createDefaultCategories(u.id).then(() => db.account.create({ data: { userId: u.id, name: "Carteira", type: "WALLET" } })));
+  await db.user.create({ data: { name: "Admin", email: "admin@sobbra.app", passwordHash: hash, onboarded: true, role: "ADMIN" } }).then((u) => createDefaultCategories(u.id).then(() => db.account.create({ data: { userId: u.id, name: "Carteira", type: "WALLET" } })));
   const u = await db.user.create({ data: { name: "Ana Souza", email: "demo@sobbra.app", passwordHash: hash, onboarded: true, monthlyIncome: 420000, goal: "guardar", simpleMode: false } });
   await createDefaultCategories(u.id);
   const nu = await db.account.create({ data: { userId: u.id, name: "Itaú", type: "CHECKING", institution: "Itaú", initialCents: 150000 } });
