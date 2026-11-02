@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { Logo } from "./ui";
 import { RegisterButton } from "./RegisterButton";
 import { Credits } from "./Credits";
+import { logout } from "@/app/actions";
 
 const I = {
   home: <path d="M3 11l9-7 9 7M5 10v10h14V10" />,
@@ -53,7 +54,7 @@ export function Nav({ admin, unread = 0 }: { admin: boolean; unread?: number }) 
             </div>
           );
         })}
-        <div className="mt-auto space-y-3 px-3 pt-6">{admin && <Link href="/admin" className="muted block text-sm hover:underline">Backoffice</Link>}<Credits compact /></div>
+        <div className="mt-auto space-y-3 px-3 pt-6">{admin && <Link href="/admin" className="muted block text-sm hover:underline">Backoffice</Link>}<form action={logout}><button className="muted text-sm hover:underline">Sair</button></form><Credits compact /></div>
       </aside>
       <header className="line sticky top-0 z-30 flex items-center justify-between border-b px-5 md:hidden" style={{ background: "var(--bg)", paddingTop: "env(safe-area-inset-top)" }}>
         <Link href="/inicio" aria-label="Início"><Logo size={30} /></Link>{bell}
