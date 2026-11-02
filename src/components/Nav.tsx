@@ -12,6 +12,10 @@ const items = [
 ];
 const extra = [
   { href: "/contas", label: "Contas e cartões", icon: "💳" },
+  { href: "/orcamentos", label: "Orçamentos e metas", icon: "🎯" },
+  { href: "/dividas", label: "Dívidas", icon: "🧯" },
+  { href: "/importar", label: "Importar extrato", icon: "📥" },
+  { href: "/contas-a-pagar", label: "Contas a pagar", icon: "🧾" },
   { href: "/agenda", label: "Agenda", icon: "📅" },
   { href: "/recorrentes", label: "Fixas e recorrentes", icon: "🔁" },
   { href: "/relatorios/despesas", label: "Relatório de despesas", icon: "🧾" },
@@ -25,7 +29,7 @@ export function Nav({ admin }: { admin: boolean }) {
   const active = (h: string) => path === h || (path.startsWith(h + "/") && !(h === "/relatorios" && path.startsWith("/relatorios/despesas")));
   return (
     <>
-      <aside className="line fixed inset-y-0 left-0 hidden w-60 flex-col gap-1 border-r p-4 md:flex" style={{ background: "var(--card)" }}>
+      <aside className="line fixed inset-y-0 left-0 hidden w-60 flex-col gap-1 overflow-y-auto border-r p-4 md:flex" style={{ background: "var(--card)" }}>
         <Link href="/inicio" className="mb-6 px-2"><Logo /></Link>
         {[...items.filter((i) => i.href !== "/mais"), ...extra, ...(admin ? [{ href: "/admin", label: "Backoffice", icon: "🛠️" }] : [])].map((i) => (
           <Link key={i.href} href={i.href} className={`flex min-h-[44px] items-center gap-3 rounded-xl px-3 font-medium ${active(i.href) ? "soft text-floresta dark:text-sobbra" : "muted hover:bg-black/5"}`}>

@@ -4,6 +4,10 @@ import { requireUser, isAdmin } from "@/lib/auth";
 export default async function Mais() {
   const user = await requireUser();
   const items = [
+    ["/orcamentos", "🎯", "Orçamentos e metas", "Limites por categoria e metas"],
+    ["/dividas", "🧯", "Minhas dívidas", "Plano para sair do vermelho"],
+    ["/importar", "📥", "Importar extrato", "OFX ou CSV do banco e do cartão"],
+    ["/contas-a-pagar", "🧾", "Contas a pagar", "Boletos pela câmera e lembretes"],
     ["/agenda", "📅", "Agenda", "Compromissos, lembretes e contas a vencer"],
     ["/recorrentes", "🔁", "Fixas e recorrentes", "Aluguel, salário, assinaturas"],
     ["/relatorios/despesas", "🧾", "Relatório de despesas", "Por período, com PDF e imagem"],

@@ -10,7 +10,7 @@ const LABEL: Record<AgendaItem["kind"], string> = { compromisso: "Compromisso", 
 const ymd = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
 function Item({ e }: { e: AgendaItem }) {
-  const label = e.source === "fatura" ? "Fatura do cartão" : LABEL[e.kind];
+  const label = e.source === "fatura" ? "Fatura do cartão" : e.source === "divida" ? "Parcela de dívida" : e.source === "boleto" ? "Boleto a pagar" : LABEL[e.kind];
   return (
     <li className="line flex flex-wrap items-center gap-3 border-t py-3 first:border-0">
       <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl text-xs font-bold" style={{ background: COLOR[e.kind] + "22", color: COLOR[e.kind] }}>{e.time ?? e.date.getDate()}</span>
@@ -19,7 +19,7 @@ function Item({ e }: { e: AgendaItem }) {
         <p className="muted text-xs">{label} · {e.date.toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit", month: "short" })}{e.time ? ` às ${e.time}` : ""}</p>
       </div>
       {e.amountCents ? <Money cents={e.amountCents} className={`font-semibold ${e.kind === "receber" ? "text-sobbra" : ""}`} /> : null}
-      <ItemActions eventId={e.eventId} txId={e.txId} canPay={(e.kind === "conta" && e.source !== "fatura" && (e.source === "lancamento" || !!e.amountCents))} canDelete={e.source === "evento"} />
+      <ItemActions eventId={e.eventId} txId={e.txId} canPay={(e.kind === "conta" && e.source !== "fatura" && e.source !== "divida" && e.source !== "boleto" && (e.source === "lancamento" || !!e.amountCents))} canDelete={e.source === "evento"} />
     </li>
   );
 }

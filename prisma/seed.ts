@@ -60,6 +60,12 @@ async function main() {
     { userId: u.id, title: "IPVA 3ª parcela", type: "conta", date: day(6), amountCents: 41200 },
     { userId: u.id, title: "Revisar gastos da semana", type: "lembrete", date: day(4), time: "20:00" },
   ] });
+  await db.debt.createMany({ data: [
+    { userId: u.id, type: "CARTAO_ROTATIVO", creditor: "Rotativo Nubank", balanceCents: 180000, monthlyRate: 12.9, paymentCents: 35000, dueDay: 10 },
+    { userId: u.id, type: "EMPRESTIMO_PESSOAL", creditor: "Empréstimo Itaú", balanceCents: 620000, monthlyRate: 3.2, paymentCents: 42000, dueDay: 15 },
+  ] });
+  await db.goal.create({ data: { userId: u.id, name: "Reserva de emergência", icon: "🛟", targetCents: 1500000, savedCents: 320000, deadline: new Date(now.getFullYear() + 1, now.getMonth(), 1, 12) } });
+  await db.bill.create({ data: { userId: u.id, payee: "Escola de inglês", amountCents: 45000, dueDate: day(5), kind: "manual" } });
   console.log("Seed ok: demo@sobbra.app / sobbra123");
 }
 main().finally(() => db.$disconnect());

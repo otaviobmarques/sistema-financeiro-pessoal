@@ -41,7 +41,7 @@ export default async function Lancamentos({ searchParams }: { searchParams: Prom
     <div>
       <div className="mb-3 flex items-center justify-between">
         <h1 className="text-xl font-bold">Lançamentos</h1>
-        <Link href="/lancamentos/novo" className="btn-primary min-h-[44px]">+ Adicionar</Link>
+        <div className="flex gap-2"><Link href="/importar" className="btn-ghost min-h-[44px]">Importar extrato</Link><Link href="/lancamentos/novo" className="btn-primary min-h-[44px]">+ Adicionar</Link></div>
       </div>
       <form className="card mb-3 grid gap-2 sm:grid-cols-6">
         <input name="q" defaultValue={sp.q} placeholder="Buscar (texto ou valor)" className="input sm:col-span-2" />

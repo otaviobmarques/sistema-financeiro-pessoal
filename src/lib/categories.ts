@@ -52,6 +52,9 @@ export const DEFAULT_CATEGORIES: CatDef[] = [
     { slug: "impostos.tarifas", name: "Tarifas e juros", keywords: ["tarifa", "juros", "iof", "anuidade", "multa", "taxa"] },
     { slug: "impostos.impostos", name: "Impostos", keywords: ["imposto", "darf", "das ", "mei", "irpf"] },
   ]},
+  { slug: "dividas", name: "Dívidas", icon: "🧯", color: "#B91C1C", kind: "EXPENSE", subs: [
+    { slug: "dividas.pagamento", name: "Pagamento de dívidas", keywords: ["parcela do emprestimo", "parcela do empréstimo", "emprestimo", "empréstimo", "consignado", "acordo", "renegociacao", "renegociação", "financiamento"] },
+  ]},
   { slug: "outros", name: "Outros gastos", icon: "📦", color: "#94A3B8", kind: "EXPENSE", subs: [
     { slug: "outros.geral", name: "Diversos", keywords: [] },
   ]},

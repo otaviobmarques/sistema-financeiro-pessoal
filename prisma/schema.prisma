@@ -93,6 +93,12 @@ model User {
   chat         ChatMessage[]
   auditActor   AuditLog[] @relation("actor")
   events       Event[]
+  budgets      Budget[]
+  goals        Goal[]
+  debts        Debt[]
+  bills        Bill[]
+  notifications Notification[]
+  notifyPrefs  Json?      // canais, horario de silencio, tipos (RF-093)
 }
 
 // Agenda: compromissos, lembretes e contas a pagar (faturas e contas agendadas entram sozinhas)
@@ -192,6 +198,7 @@ model Transaction {
   notes         String?
   origin        TxOrigin   @default(MANUAL)
   confidence    Float?
+  externalId    String?    // FITID do OFX ou hash da linha importada (deduplicacao)
   receiptId     String?    @unique
   receipt       Receipt?   @relation(fields: [receiptId], references: [id], onDelete: SetNull)
   deletedAt     DateTime?  // lixeira 30 dias (RF-166)
@@ -199,6 +206,7 @@ model Transaction {
 
   @@index([userId, date])
   @@index([userId, deletedAt])
+  @@index([userId, externalId])
 }
 
 model Receipt {
@@ -266,5 +274,95 @@ model ChatMessage {
   data      Json?
   createdAt DateTime @default(now())
 
+  @@index([userId, createdAt])
+}
+
+// ---------- Fase 2 ----------
+
+// Orcamento mensal por categoria-mae (RF-080)
+model Budget {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  categoryId  String
+  limitCents  Int
+  createdAt   DateTime @default(now())
+
+  @@unique([userId, categoryId])
+}
+
+// Metas: reserva de emergencia, viagem, carro (RF-082)
+model Goal {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  icon        String   @default("🎯")
+  targetCents Int
+  savedCents  Int      @default(0)
+  deadline    DateTime?
+  achievedAt  DateTime?
+  createdAt   DateTime @default(now())
+}
+
+enum DebtType {
+  CARTAO_ROTATIVO
+  CHEQUE_ESPECIAL
+  EMPRESTIMO_PESSOAL
+  CONSIGNADO
+  FINANCIAMENTO
+  ACORDO
+  OUTRA
+}
+
+// Dividas e saida do vermelho (RF-180)
+model Debt {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type            DebtType
+  creditor        String
+  balanceCents    Int      // saldo devedor atual
+  monthlyRate     Float    // juros ao mes, em % (ex.: 12.5)
+  paymentCents    Int      // parcela/pagamento minimo mensal
+  dueDay          Int
+  paidOffAt       DateTime?
+  createdAt       DateTime @default(now())
+}
+
+// Contas a pagar e boletos (RF-190)
+model Bill {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  payee         String
+  amountCents   Int
+  dueDate       DateTime
+  barcode       String?  // 44 digitos
+  digitableLine String?  // linha digitavel 47/48 digitos
+  pixCode       String?
+  kind          String   @default("boleto") // "boleto" | "arrecadacao" | "manual"
+  paidAt        DateTime?
+  transactionId String?
+  remindDays    Int      @default(3)
+  createdAt     DateTime @default(now())
+
+  @@index([userId, dueDate])
+}
+
+// Central de notificacoes (RF-090..093)
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind      String   // "conta" | "fatura" | "saldo" | "orcamento" | "meta" | "resumo"
+  dedupKey  String   // evita repetir o mesmo aviso
+  title     String
+  body      String
+  href      String?
+  readAt    DateTime?
+  createdAt DateTime @default(now())
+
+  @@unique([userId, dedupKey])
   @@index([userId, createdAt])
 }

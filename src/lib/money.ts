@@ -3,12 +3,13 @@ export const brl = (cents: number) => fmt.format(cents / 100);
 
 /** Converte "1.234,56", "1234.56", "50" em centavos. */
 export function parseMoney(input: string): number | null {
-  let s = input.replace(/[R$\s]/g, "");
+  const neg = /^\s*-/.test(input);
+  let s = input.replace(/[R$\s-]/g, "");
   if (!s) return null;
   if (s.includes(",")) s = s.replace(/\./g, "").replace(",", ".");
   else if (/^\d{1,3}(\.\d{3})+$/.test(s)) s = s.replace(/\./g, ""); // "1.000" = mil
   const n = Number(s);
-  return Number.isFinite(n) ? Math.round(n * 100) : null;
+  return Number.isFinite(n) ? Math.round(n * 100) * (neg ? -1 : 1) : null;
 }
 
 export const monthKey = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
